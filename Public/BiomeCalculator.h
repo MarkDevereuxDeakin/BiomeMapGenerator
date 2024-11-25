@@ -32,4 +32,7 @@ public:
         const FString& SeaLevelStr,
         const TArray<FHeightmapCell>& HeightmapData); //Use FHeightmapCell
 
+        // Declare the function to filter biome candidates
+    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);   
+
 };

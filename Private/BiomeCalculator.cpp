@@ -2,9 +2,10 @@
 #include "OceanTemperature.h"
 #include "EnvironmentFactors.h"
 #include "UnifiedWindCalculator.h"
+#include "BiomeWeightedProbability.h"
 
 // Helper function to classify biome
-static FString DetermineBiome(float AdjustedTemperature, float Precipitation, float OceanTempEffect);
+//static TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);
 
 FString UBiomeCalculator::CalculateBiome(float Latitude, float Longitude, float Altitude, float DistanceToOcean, FString FlowDirection)
 {
@@ -17,7 +18,6 @@ FString UBiomeCalculator::CalculateBiome(float Latitude, float Longitude, float 
     float OceanTempEffect = AdjustedTemperature / (DistanceToOcean + 1);
 
     //float OceanTempEffect = AdjustedTemperature * FMath::Exp(-DistanceToOcean / 100.0f); Alternative OCeanTempEffect, with diminitioning effect as distance increases
-
 
     // Adjust precipitation and temperature based on wind patterns
     float TimeOfYear = 0.5f; // Placeholder for mid-year; update dynamically if needed
@@ -34,8 +34,12 @@ FString UBiomeCalculator::CalculateBiome(float Latitude, float Longitude, float 
         AdjustedTemperature -= 1.5f;
     }
 
-    // Determine biome based on adjusted values
-    return DetermineBiome(AdjustedTemperature, Precipitation, OceanTempEffect);
+    // Filter Biomes based on adjusted values
+    TArray<FString> Candidates = FilterBiomeCandidates(AdjustedTemperature, Precipitation, OceanTempEffect);
+
+    // Calculate biome probabilities
+    return CalculateBiomeProbabilities(AdjustedTemperature, Precipitation, OceanTempEffect, Candidates);
+
 }
 
 FString UBiomeCalculator::CalculateBiomeFromInput(
@@ -63,80 +67,72 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
         return "Invalid input ranges provided.";
     }
 
-   // Shared string for final results (use mutex for thread-safe access)
-    FString FinalBiomes;
+    TSet<FString> UniqueBiomes;
     FCriticalSection ResultMutex;
 
-    // Parallel loop over heightmap cells
     ParallelFor(HeightmapData.Num(), [&](int32 Index)
     {
         const FHeightmapCell& Cell = HeightmapData[Index];
 
-        // Ensure the cell falls within the specified bounds
-        if (Cell.Latitude < MinLatitude || Cell.Latitude > MaxLatitude ||
-            Cell.Longitude < MinLongitude || Cell.Longitude > MaxLongitude ||
-            Cell.Altitude < MinAltitude || Cell.Altitude > MaxAltitude)
+        if (Cell.Latitude >= MinLatitude && Cell.Latitude <= MaxLatitude &&
+            Cell.Longitude >= MinLongitude && Cell.Longitude <= MaxLongitude &&
+            Cell.Altitude >= MinAltitude && Cell.Altitude <= MaxAltitude)
         {
-            return; // Skip this cell
-        }
-
-        // Calculate biome
-        FString Biome = CalculateBiome(Cell.Latitude, Cell.Longitude, Cell.Altitude, Cell.DistanceToOcean, "");
-
-        // Append results (thread-safe)
-        {
+            FString Biome = CalculateBiome(Cell.Latitude, Cell.Longitude, Cell.Altitude, Cell.DistanceToOcean, "");
             FScopeLock Lock(&ResultMutex);
-            FinalBiomes += FString::Printf(TEXT("(%f, %f): %s\n"), Cell.Latitude, Cell.Longitude, *Biome);
+            UniqueBiomes.Add(Biome);
         }
-
-        
     });
 
-        // Check if FinalBiomes is empty
-    if (FinalBiomes.IsEmpty())
+    if (UniqueBiomes.Num() == 0)
     {
         return "No valid data found in the provided heightmap.";
     }
 
-    // Return the accumulated results
+    FString FinalBiomes;
+    for (const FString& Biome : UniqueBiomes)
+    {
+        FinalBiomes += Biome + TEXT("\n");
+    }
+
     return FinalBiomes;
 }
 
-
-static FString DetermineBiome(float AdjustedTemperature, float Precipitation, float OceanTempEffect)
+TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect)
 {
+    // Array of candidate biomes
+    TArray<FString> Candidates;
+
     // Handle extreme climates
     if (AdjustedTemperature > 30 || Precipitation > 3000)
-        return "Extreme Tropical Climate";
+        Candidates.Add( "Extreme Tropical Climate");
     if (AdjustedTemperature < -20 || Precipitation < 50)
-        return "Extreme Polar Climate";
+        Candidates.Add( "Extreme Polar Climate");
 
     // Biome classification logic
-    if (AdjustedTemperature > 26 && Precipitation > 2500) return "Tropical Rainforest";
-    if (AdjustedTemperature > 24 && Precipitation > 1000 && Precipitation <= 2500) return "Savanna";
-    if (AdjustedTemperature > 18 && AdjustedTemperature <= 24 && Precipitation > 800 && Precipitation <= 2000) return "Tropical Seasonal Forest";
-    if (AdjustedTemperature > 12 && AdjustedTemperature <= 18 && Precipitation > 1000 && OceanTempEffect > 800) return "Temperate Broadleaf";
-    if (AdjustedTemperature > 5 && AdjustedTemperature <= 15 && Precipitation <= 600 && OceanTempEffect > 500) return "Temperate Steppe and Savanna";
-    if (AdjustedTemperature > 15 && AdjustedTemperature <= 18 && Precipitation > 1000 && OceanTempEffect > 1200) return "Subtropical Evergreen Forest";
-    if (AdjustedTemperature > 15 && AdjustedTemperature <= 20 && Precipitation >= 500 && Precipitation <= 1000 && OceanTempEffect > 1000) return "Mediterranean";
-    if (AdjustedTemperature > 18 && Precipitation >= 1500 && Precipitation <= 2500 && OceanTempEffect > 800) return "Monsoon Forests";
-    if (AdjustedTemperature > 20 && Precipitation < 200 && OceanTempEffect < 500) return "Arid Desert";
-    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 20 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect < 700) return "Xeric Shrubland";
-    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 20 && Precipitation >= 200 && Precipitation <= 400 && OceanTempEffect < 600) return "Dry Steppe";
-    if (AdjustedTemperature >= 5 && AdjustedTemperature <= 18 && Precipitation >= 400 && Precipitation <= 800 && OceanTempEffect < 500) return "Semiarid Desert";
-    if (AdjustedTemperature >= 18 && AdjustedTemperature <= 22 && Precipitation >= 500 && Precipitation <= 1000 && OceanTempEffect > 600) return "Grass Savanna";
-    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 26 && Precipitation >= 800 && Precipitation <= 1500 && OceanTempEffect > 800) return "Tree Savanna";
-    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 28 && Precipitation >= 1000 && Precipitation <= 2000 && OceanTempEffect > 900) return "Dry Forest and Woodland Savanna";
-    if (AdjustedTemperature >= -10 && AdjustedTemperature <= -5 && Precipitation >= 300 && Precipitation <= 600 && OceanTempEffect > 500) return "Alpine Tundra";
-    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 10 && Precipitation > 1000 && OceanTempEffect > 700) return "Montane Forests and Grasslands";
-    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 5 && Precipitation >= 400 && Precipitation <= 1500 && OceanTempEffect > 500 && OceanTempEffect <= 1000) return "Taiga (Boreal Forest)";
-    if (AdjustedTemperature >= 15 && Precipitation <= 500 && OceanTempEffect < 500) return "Scrub/Shrubland";
-    if (AdjustedTemperature < 0 && Precipitation <= 300 && OceanTempEffect <= 300) return "Tundra";
-    if (AdjustedTemperature < -5 && Precipitation < 100 && OceanTempEffect < 200) return "Polar Desert";
-    if (AdjustedTemperature > 20 && Precipitation < 250 && OceanTempEffect < 500) return "Hot Desert";
-    if (AdjustedTemperature < 10 && Precipitation < 250 && OceanTempEffect < 500) return "Cold Desert";
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 25 && Precipitation >= 2000) Candidates.Add("Tropical Rainforest");
+    if (AdjustedTemperature > 24 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1500) Candidates.Add( "Savanna");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature < 25 && Precipitation >= 1000 && Precipitation <= 2000) Candidates.Add( "Tropical Seasonal Forest");
+    if (AdjustedTemperature > -30 && AdjustedTemperature <= 30 && Precipitation > 750 && Precipitation < 1500 && OceanTempEffect > 800) Candidates.Add( "Temperate Broadleaf");
+    if (AdjustedTemperature > -5 && AdjustedTemperature < 20 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect > 500) Candidates.Add( "Temperate Steppe and Savanna");
+    if (AdjustedTemperature > 10 && AdjustedTemperature <= 25 && Precipitation > 1000 && Precipitation < 2000 && OceanTempEffect > 1200) Candidates.Add( "Subtropical Evergreen Forest");
+    if (AdjustedTemperature > 10 && AdjustedTemperature <= 35 && Precipitation >= 500 && Precipitation <= 900 && OceanTempEffect > 1000) Candidates.Add( "Mediterranean");
+    if (AdjustedTemperature > 19 && AdjustedTemperature < 35 && Precipitation >= 1500 && Precipitation <= 2500 && OceanTempEffect > 800) Candidates.Add( "Monsoon Forests");
+    if (AdjustedTemperature > 30 && AdjustedTemperature < 50 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add( "Arid Desert");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 40 && Precipitation >= 200 && Precipitation <= 400 && OceanTempEffect < 700) Candidates.Add( "Xeric Shrubland");
+    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 20 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect < 600) Candidates.Add( "Dry Steppe");
+    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 35 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect < 500) Candidates.Add( "Semiarid Desert");
+    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1500 && OceanTempEffect > 600) Candidates.Add( "Grass Savanna");
+    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1500 && OceanTempEffect > 800) Candidates.Add( "Tree Savanna");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 30 && Precipitation >= 500 && Precipitation <= 1500 && OceanTempEffect > 900) Candidates.Add( "Dry Forest and Woodland Savanna");
+    if (AdjustedTemperature >= -12 && AdjustedTemperature <= 10 && Precipitation >= 300 && Precipitation <= 600 && OceanTempEffect > 500) Candidates.Add( "Alpine Tundra");
+    if (AdjustedTemperature >= 5 && AdjustedTemperature <= 15 && Precipitation > 1000 && Precipitation <= 1500 && OceanTempEffect > 700) Candidates.Add( "Montane Forests and Grasslands");
+    if (AdjustedTemperature >= -54 && AdjustedTemperature <= 15 && Precipitation >= 200 && Precipitation <= 600 && OceanTempEffect > 500 && OceanTempEffect <= 1000) Candidates.Add( "Taiga (Boreal Forest)");
+    if (AdjustedTemperature >= -1 && AdjustedTemperature <= 38 && Precipitation >= 200 && Precipitation <= 1000 && OceanTempEffect < 500) Candidates.Add( "Scrub/Shrubland");
+    if (AdjustedTemperature > -34 && AdjustedTemperature < 12 && Precipitation <= 250 && OceanTempEffect <= 300) Candidates.Add( "Tundra");
+    if (AdjustedTemperature < -10 && Precipitation < 250 && OceanTempEffect < 200) Candidates.Add("Polar Desert");
+    if (AdjustedTemperature > 30 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add("Hot Desert");
+    if (AdjustedTemperature > -5 && AdjustedTemperature < 5 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add("Cold Desert");
 
-    // Fallback case
-    return FString::Printf(TEXT("Unknown Biome (Temp: %.2f, Precip: %.2f, OceanTempEffect: %.2f)"),
-                           AdjustedTemperature, Precipitation, OceanTempEffect);
+    return Candidates;
 }

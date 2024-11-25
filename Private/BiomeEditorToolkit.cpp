@@ -1,10 +1,13 @@
 #include "BiomeEditorToolkit.h"
+#include "BiomeCalculator.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "DesktopPlatformModule.h"
 #include "HeightmapParser.h"
+
+UBiomeCalculator* BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
 
 void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 {
@@ -50,8 +53,75 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             ]
         ]
 
-        // Add other input fields (Longitude, Altitude, Sea Level) here...
-        // ...
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Min Longitude:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(MinLongitudeInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Max Longitude:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(MaxLongitudeInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Min Altitude:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(MinAltitudeInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Max Altitude:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(MaxAltitudeInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Sea Level:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(SeaLevelInput, SEditableTextBox)
+            ]
+        ]        
 
         // Upload Button
         + SVerticalBox::Slot()
@@ -145,13 +215,32 @@ FReply BiomeEditorToolkit::OnUploadButtonClicked()
 
 FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
 {
-    if (HeightmapData.Num() == 0)
+     if (HeightmapData.Num() == 0)
     {
         UploadStatusText->SetText(FText::FromString("No heightmap data available."));
         return FReply::Handled();
     }
 
-    // Logic to calculate biomes from heightmap data...
-    ResultText->SetText(FText::FromString("Biome calculation complete."));
+    FString MinLatitude = MinLatitudeInput->GetText().ToString();
+    FString MaxLatitude = MaxLatitudeInput->GetText().ToString();
+    FString MinLongitude = MinLongitudeInput->GetText().ToString();
+    FString MaxLongitude = MaxLongitudeInput->GetText().ToString();
+    FString MinAltitude = MinAltitudeInput->GetText().ToString();
+    FString MaxAltitude = MaxAltitudeInput->GetText().ToString();
+    FString SeaLevel = SeaLevelInput->GetText().ToString();
+
+    //UBiomeCalculator* BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
+
+    FString BiomeResults = BiomeCalculatorInstance->CalculateBiomeFromInput(
+        MinLatitude,
+        MaxLatitude,
+        MinLongitude,
+        MaxLongitude,
+        MinAltitude,
+        MaxAltitude,
+        SeaLevel,
+        HeightmapData);
+
+    ResultText->SetText(FText::FromString(BiomeResults));
     return FReply::Handled();
 }
