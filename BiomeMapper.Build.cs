@@ -32,7 +32,8 @@ public class BiomeMapper : ModuleRules
             "UMG",
             "Slate",      // Required for Slate widgets
             "SlateCore",   // Required for Slate widgets
-            "BiomeMapper"
+            "BiomeMapper",
+            "ImageWrapper"
         });
 
         // Private dependencies (Editor-only modules)

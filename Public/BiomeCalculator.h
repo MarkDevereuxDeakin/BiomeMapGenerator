@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "HeightmapCell.h"
+#include "PlanetTime.h"
 #include "UObject/Object.h"
 #include "BiomeCalculator.generated.h"
 
@@ -18,7 +19,8 @@ public:
         float Longitude, 
         float Altitude, 
         float DistanceToOcean, 
-        FString FlowDirection);
+        FString FlowDirection,
+        const FPlanetTime& PlanetTime);
 
          // New version for heightmap processing
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
@@ -30,7 +32,8 @@ public:
         const FString& MinAltitudeStr,
         const FString& MaxAltitudeStr,
         const FString& SeaLevelStr,
-        const TArray<FHeightmapCell>& HeightmapData); //Use FHeightmapCell
+        const TArray<FHeightmapCell>& HeightmapData,
+        const FPlanetTime& PlanetTime); 
 
         // Declare the function to filter biome candidates
     TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);   

@@ -1,4 +1,5 @@
 #include "BiomeEditorToolkit.h"
+#include "PlanetTime.h"
 #include "BiomeCalculator.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
@@ -25,6 +26,48 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
         ]
 
         // Input Fields
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Day Length (Seconds):"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(DayLengthInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Year Length (Days):"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(YearLengthInput, SEditableTextBox)
+            ]
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            [
+                SNew(STextBlock).Text(FText::FromString("Months Per Year:"))
+            ]
+            + SHorizontalBox::Slot()
+            [
+                SAssignNew(MonthsPerYearInput, SEditableTextBox)
+            ]
+        ]
+
         + SVerticalBox::Slot()
         .AutoHeight()
         [
@@ -170,12 +213,12 @@ FReply BiomeEditorToolkit::OnUploadButtonClicked()
 
     TArray<FString> OutFiles;
     if (DesktopPlatform->OpenFileDialog(
-            nullptr, 
-            TEXT("Select Heightmap"), 
-            FPaths::ProjectContentDir(), 
-            TEXT(""), 
-            TEXT("Heightmap Files (*.raw;*.r16;*.r32)|*.raw;*.r16;*.r32"), 
-            EFileDialogFlags::None, 
+            nullptr,
+            TEXT("Select Heightmap"),
+            FPaths::ProjectContentDir(),
+            TEXT(""),
+            TEXT("All Supported Files (*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg;)|*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg;|Raw Files (*.raw;*.r16;*.r32)|*.raw;*.r16;*.r32|Image Files (*.png;*.jpg;*.jpeg;)|*.png;*.jpg;*.jpeg;"),
+            EFileDialogFlags::None,
             OutFiles))
     {
         if (OutFiles.Num() > 0)
@@ -184,7 +227,9 @@ FReply BiomeEditorToolkit::OnUploadButtonClicked()
             HeightmapData.Empty();
 
             int32 Width, Height;
-            if (ParseHeightmap(
+
+            // Enhanced error handling and logging
+            if (!HeightmapParser::ParseHeightmap(
                 SelectedFile,
                 FCString::Atof(*SeaLevelInput->GetText().ToString()),
                 FCString::Atof(*MinAltitudeInput->GetText().ToString()),
@@ -197,11 +242,12 @@ FReply BiomeEditorToolkit::OnUploadButtonClicked()
                 Width,
                 Height))
             {
-                UploadStatusText->SetText(FText::FromString(FString::Printf(TEXT("Loaded heightmap (%dx%d)"), Width, Height)));
+                UE_LOG(LogTemp, Error, TEXT("Failed to parse heightmap: %s"), *SelectedFile);
+                UploadStatusText->SetText(FText::FromString(FString::Printf(TEXT("Failed to parse heightmap: %s"), *SelectedFile)));
             }
             else
             {
-                UploadStatusText->SetText(FText::FromString("Failed to parse heightmap."));
+                UploadStatusText->SetText(FText::FromString(FString::Printf(TEXT("Loaded heightmap (%dx%d)"), Width, Height)));
             }
         }
     }
@@ -220,7 +266,7 @@ FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
         UploadStatusText->SetText(FText::FromString("No heightmap data available."));
         return FReply::Handled();
     }
-
+    
     FString MinLatitude = MinLatitudeInput->GetText().ToString();
     FString MaxLatitude = MaxLatitudeInput->GetText().ToString();
     FString MinLongitude = MinLongitudeInput->GetText().ToString();
@@ -229,7 +275,14 @@ FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
     FString MaxAltitude = MaxAltitudeInput->GetText().ToString();
     FString SeaLevel = SeaLevelInput->GetText().ToString();
 
-    //UBiomeCalculator* BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
+    float DayLength = FCString::Atof(*DayLengthInput->GetText().ToString());
+    float YearLength = FCString::Atof(*YearLengthInput->GetText().ToString());
+    int32 MonthsPerYear = FCString::Atoi(*MonthsPerYearInput->GetText().ToString());
+
+    // Initialize planetary time
+    FPlanetTime PlanetTime(DayLength, YearLength, MonthsPerYear);
+
+    
 
     FString BiomeResults = BiomeCalculatorInstance->CalculateBiomeFromInput(
         MinLatitude,
@@ -239,7 +292,8 @@ FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
         MinAltitude,
         MaxAltitude,
         SeaLevel,
-        HeightmapData);
+        HeightmapData,
+        PlanetTime);
 
     ResultText->SetText(FText::FromString(BiomeResults));
     return FReply::Handled();

@@ -17,6 +17,9 @@ public:
 
 private:
     // UI Elements
+    TSharedPtr<SEditableTextBox> DayLengthInput;
+    TSharedPtr<SEditableTextBox> YearLengthInput;
+    TSharedPtr<SEditableTextBox> MonthsPerYearInput;
     TSharedPtr<SEditableTextBox> MinLatitudeInput;
     TSharedPtr<SEditableTextBox> MaxLatitudeInput;
     TSharedPtr<SEditableTextBox> MinLongitudeInput;

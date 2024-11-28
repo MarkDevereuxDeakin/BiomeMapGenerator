@@ -2,8 +2,8 @@
 #include "Altitude.h"
 #include "DistanceToOcean.h"
 
-bool ParseHeightmap(
-    const FString& FilePath,
+bool HeightmapParser::ParseHeightmap(
+   const FString& FilePath,
     float SeaLevel,
     float MinAltitude,
     float MaxAltitude,
@@ -15,18 +15,17 @@ bool ParseHeightmap(
     int32& Width,
     int32& Height)
 {
-    // Load heightmap pixels
+    // Load raw heightmap data
     TArray<uint8> HeightmapPixels;
-    if (!LoadHeightmap(FilePath, HeightmapPixels, Width, Height))
+    if (!HeightmapParser::LoadHeightmap(FilePath, HeightmapPixels, Width, Height))
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap from file: %s"), *FilePath);
         return false;
     }
 
-    // Prepare output data
+    // Prepare output array
     OutData.Empty(Width * Height);
 
-    // Process each pixel
     for (int32 y = 0; y < Height; ++y)
     {
         for (int32 x = 0; x < Width; ++x)
@@ -36,40 +35,40 @@ bool ParseHeightmap(
 
             FHeightmapCell Cell;
 
-            // Calculate latitude and longitude
-            Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / (float)Height);
-            Cell.Longitude = MinLongitude + (MaxLongitude - MinLongitude) * (x / (float)Width);
+            // Compute latitude and longitude
+            Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(Height));
+            Cell.Longitude = MinLongitude + (MaxLongitude - MinLongitude) * (x / static_cast<float>(Width));
 
             // Calculate altitude
             Cell.Altitude = CalculateAltitude(PixelValue, MinAltitude, MaxAltitude);
 
             // Determine if land or ocean
-            if (PixelValue >= SeaLevel)
+            if (Cell.Altitude <= SeaLevel)
             {
-                Cell.OceanDepth = 0.0f;         // No depth for land
-                Cell.DistanceToOcean = FLT_MAX; // Mark for distance calculation
+                Cell.OceanDepth = CalculateOceanDepth(SeaLevel, Cell.Altitude);
+                Cell.DistanceToOcean = 0.0f;
             }
             else
             {
-                Cell.OceanDepth = CalculateOceanDepth(SeaLevel, Cell.Altitude);
-                Cell.DistanceToOcean = 0.0f;   // Ocean has no distance to itself
+                Cell.OceanDepth = 0.0f;
+                Cell.DistanceToOcean = FLT_MAX; // Mark land for distance calculation
             }
 
             OutData.Add(Cell);
         }
     }
 
-    // Calculate distance to ocean for land pixels
+    // Calculate distances to ocean for all land pixels
     if (!CalculateDistanceToOcean(OutData, Width, Height))
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to calculate DistanceToOcean."));
+        UE_LOG(LogTemp, Error, TEXT("Failed to calculate distance to ocean."));
         return false;
     }
 
     return true;
 }
 
-bool LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight)
+bool HeightmapParser::LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight)
 {
     // Read file into raw data
     if (!FFileHelper::LoadFileToArray(OutHeightmapData, *FilePath))
@@ -92,7 +91,7 @@ bool LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int
     return true;
 }
 
-bool ParseRawHeightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
+bool HeightmapParser::ParseRawHeightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
 {
     int32 NumPixels = RawData.Num();
 
@@ -109,7 +108,7 @@ bool ParseRawHeightmap(const TArray<uint8>& RawData, int32& Width, int32& Height
     return true;
 }
 
-bool ParseR16Heightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
+bool HeightmapParser::ParseR16Heightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
 {
     // Ensure the data is a multiple of 2 bytes (16 bits per sample)
     if (RawData.Num() % sizeof(uint16) != 0)
@@ -133,7 +132,7 @@ bool ParseR16Heightmap(const TArray<uint8>& RawData, int32& Width, int32& Height
     return true;
 }
 
-bool ParseR32Heightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
+bool HeightmapParser::ParseR32Heightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
 {
     // Ensure the data is a multiple of 4 bytes (32 bits per sample)
     if (RawData.Num() % sizeof(float) != 0)

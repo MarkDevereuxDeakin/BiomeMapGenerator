@@ -33,7 +33,15 @@ FString CalculateBiomeProbabilities(float AdjustedTemperature, float Precipitati
 
     for (const FString& Candidate : Candidates)
     {        
-        const FBiomeWeights& Weights = BiomeWeightMap[Candidate];
+        const FBiomeWeights* WeightsPtr = BiomeWeightMap.Find(Candidate);
+
+        if (WeightsPtr == nullptr)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Biome '%s' not found in BiomeWeightMap. Skipping."), *Candidate);
+            continue;
+        }
+
+        const FBiomeWeights& Weights = *WeightsPtr;
 
         // Calculate the score for the biome
         float Score = Weights.TemperatureWeight * AdjustedTemperature +
