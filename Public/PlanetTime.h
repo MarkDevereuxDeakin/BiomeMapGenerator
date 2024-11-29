@@ -1,8 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PlanetTime.generated.h" // Required for Unreal's reflection system
+#include "PlanetTime.generated.h"
 
+/**
+ * Struct to represent planetary time.
+ * Provides functionality for advancing time and retrieving time-related information.
+ */
 USTRUCT(BlueprintType)
 struct BIOMEMAPPER_API FPlanetTime
 {
@@ -10,7 +14,15 @@ struct BIOMEMAPPER_API FPlanetTime
 
 public:
     /** Default constructor */
-    FPlanetTime();
+    FPlanetTime()
+    : DayLengthSeconds(86400.0f),  // Default to 24 hours in seconds
+      YearLengthDays(365.25f),     // Default to Earth's year length in days
+      MonthsPerYear(12),           // Default to 12 months
+      CurrentTimeSeconds(0.0f),    // Start at time zero
+      YearCount(0)                 // Start at year zero;
+      {
+        
+      }
 
     /**
      * Parameterized constructor
@@ -24,28 +36,24 @@ public:
      * Advance the planetary time by a given delta in seconds.
      * @param DeltaSeconds - Time increment in seconds
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     void AdvanceTime(float DeltaSeconds);
 
     /**
      * Get the current year.
      * @return The current year (1-based).
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     int32 GetYear() const;
 
     /**
      * Get the current day of the year.
      * @return The current day of the year (1-based).
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     int32 GetDayOfYear() const;
 
     /**
      * Get the current time of day in seconds.
      * @return Time of day in seconds within the current day.
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     float GetTimeOfDay() const;
 
     /**
@@ -53,28 +61,24 @@ public:
      * @param OutMonth - Output parameter for the current month (1-based).
      * @param OutDay - Output parameter for the current day within the month (1-based).
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     void GetMonthAndDay(int32& OutMonth, int32& OutDay) const;
 
     /**
      * Get a formatted string representing the current planetary time.
      * @return A string in the format "Year: X, Month: X, Day: X, Time: X hours".
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     FString GetFormattedTime() const;
 
     /**
      * Get the length of a day in seconds.
      * @return Length of a day in seconds.
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     float GetDayLengthSeconds() const;
 
     /**
      * Get the length of a year in days.
      * @return Length of a year in days.
      */
-    UFUNCTION(BlueprintCallable, Category = "PlanetTime")
     float GetYearLengthDays() const { return YearLengthDays; }
 
 private:

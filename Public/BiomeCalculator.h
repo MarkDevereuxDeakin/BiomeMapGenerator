@@ -6,13 +6,25 @@
 #include "UObject/Object.h"
 #include "BiomeCalculator.generated.h"
 
+/**
+ * Class responsible for calculating biome classifications.
+ */
 UCLASS()
 class BIOMEMAPPER_API UBiomeCalculator : public UObject
 {
     GENERATED_BODY()
 
 public:
-    // Main biome calculation function
+    /**
+     * Calculate the biome for specific coordinates.
+     * @param Latitude - Geographic latitude.
+     * @param Longitude - Geographic longitude.
+     * @param Altitude - Altitude of the location.
+     * @param DistanceToOcean - Distance to the nearest ocean.
+     * @param FlowDirection - Ocean or wind flow direction.
+     * @param PlanetTime - The planetary time information.
+     * @return The calculated biome as a string.
+     */
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
     FString CalculateBiome(
         float Latitude, 
@@ -22,7 +34,19 @@ public:
         FString FlowDirection,
         const FPlanetTime& PlanetTime);
 
-         // New version for heightmap processing
+    /**
+     * Calculate biomes for an entire heightmap input.
+     * @param MinLatitudeStr - Minimum latitude (string format).
+     * @param MaxLatitudeStr - Maximum latitude (string format).
+     * @param MinLongitudeStr - Minimum longitude (string format).
+     * @param MaxLongitudeStr - Maximum longitude (string format).
+     * @param MinAltitudeStr - Minimum altitude (string format).
+     * @param MaxAltitudeStr - Maximum altitude (string format).
+     * @param SeaLevelStr - Sea level (string format).
+     * @param HeightmapData - The heightmap data array.
+     * @param PlanetTime - The planetary time information.
+     * @return The calculated biome data as a string.
+     */
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
     FString CalculateBiomeFromInput(
         const FString& MinLatitudeStr,
@@ -33,9 +57,13 @@ public:
         const FString& MaxAltitudeStr,
         const FString& SeaLevelStr,
         const TArray<FHeightmapCell>& HeightmapData,
-        const FPlanetTime& PlanetTime); 
+        const FPlanetTime& PlanetTime);
 
-        // Declare the function to filter biome candidates
-    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation);   
-
+    /**
+     * Filter biome candidates based on environmental parameters.
+     * @param AdjustedTemperature - Temperature after adjustments.
+     * @param Precipitation - Total precipitation.
+     * @return Array of biome candidates.
+     */
+    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation);
 };

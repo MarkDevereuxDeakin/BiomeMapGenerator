@@ -32,7 +32,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot()
             [
-                SNew(STextBlock).Text(FText::FromString("Day Length (Seconds):"))
+                SNew(STextBlock).Text(FText::FromString("Day Length (Hours):"))
             ]
             + SHorizontalBox::Slot()
             [

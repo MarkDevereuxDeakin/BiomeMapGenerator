@@ -6,7 +6,7 @@
 class BiomeEditorToolkit;
 
 /**
- * Custom editor mode for biome editing.
+ * Custom editor mode for biome editing in the Unreal Editor.
  */
 class FBiomeEditorMode : public FEdMode
 {
@@ -16,25 +16,25 @@ public:
     FBiomeEditorMode();
     virtual ~FBiomeEditorMode();
 
-    // Called when entering the mode
+    /** Called when entering the editor mode. */
     virtual void Enter() override;
 
-    // Called when exiting the mode
-    virtual void Exit() override;    
+    /** Called when exiting the editor mode. */
+    virtual void Exit() override;
 
-    // Determines if the mode uses a toolkit for UI
+    /** Determines if this mode uses a toolkit for UI. */
     virtual bool UsesToolkits() const override;
 
 private:
-   // Method to spawn the tab content
+    /** Method to spawn the tab content. */
     TSharedRef<SDockTab> SpawnBiomeTab(const FSpawnTabArgs& Args);
 
-    // Callback for when the tab is closed
+    /** Callback for when the tab is closed. */
     void OnTabClosed(TSharedRef<SDockTab> ClosedTab);
 
-    // Pointer to the widget content for the Biome Editor
+    /** Pointer to the widget content for the Biome Editor. */
     TSharedPtr<SWidget> ToolkitWidget;
 
-    // Static member to track the current tab instance
+    /** Static member to track the current tab instance. */
     static TWeakPtr<SDockTab> BiomeTabInstance;
 };
