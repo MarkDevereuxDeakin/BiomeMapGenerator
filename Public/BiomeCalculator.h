@@ -38,8 +38,8 @@ public:
      * Calculate biomes for an entire heightmap input.
      * @param MinLatitudeStr - Minimum latitude (string format).
      * @param MaxLatitudeStr - Maximum latitude (string format).
-     * @param MinLongitudeStr - Minimum longitude (string format).
-     * @param MaxLongitudeStr - Maximum longitude (string format).
+     * @param OutMinLongitude - Calculated minimum longitude (float).
+     * @param OutMaxLongitude - Calculated maximum longitude (float).
      * @param MinAltitudeStr - Minimum altitude (string format).
      * @param MaxAltitudeStr - Maximum altitude (string format).
      * @param SeaLevelStr - Sea level (string format).
@@ -47,12 +47,13 @@ public:
      * @param PlanetTime - The planetary time information.
      * @return The calculated biome data as a string.
      */
+    
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
     FString CalculateBiomeFromInput(
         const FString& MinLatitudeStr,
         const FString& MaxLatitudeStr,
-        const FString& MinLongitudeStr,
-        const FString& MaxLongitudeStr,
+        float OutMinLongitude, // Use calculated Min Longitude
+        float OutMaxLongitude, // Use calculated Max Longitude
         const FString& MinAltitudeStr,
         const FString& MaxAltitudeStr,
         const FString& SeaLevelStr,

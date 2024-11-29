@@ -103,10 +103,14 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             + SHorizontalBox::Slot()
             [
                 SNew(STextBlock).Text(FText::FromString("Min Longitude:"))
+                .Font(FSlateFontInfo("Verdana", 12)) // Optional font styling
             ]
             + SHorizontalBox::Slot()
             [
-                SAssignNew(MinLongitudeInput, SEditableTextBox)
+                SNew(STextBlock)
+                .Text_Lambda([this]() { return FText::FromString(FString::SanitizeFloat(ParsedMinLongitude));
+                })
+                .Font(FSlateFontInfo("Verdana", 12)) // Optional font styling
             ]
         ]
 
@@ -117,10 +121,14 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             + SHorizontalBox::Slot()
             [
                 SNew(STextBlock).Text(FText::FromString("Max Longitude:"))
+                .Font(FSlateFontInfo("Verdana", 12)) // Optional font styling
             ]
             + SHorizontalBox::Slot()
             [
-                SAssignNew(MaxLongitudeInput, SEditableTextBox)
+                SNew(STextBlock)
+                .Text_Lambda([this]() { return FText::FromString(FString::SanitizeFloat(ParsedMaxLongitude));
+                })
+                .Font(FSlateFontInfo("Verdana", 12)) // Optional font styling
             ]
         ]
 
@@ -236,8 +244,8 @@ FReply BiomeEditorToolkit::OnUploadButtonClicked()
                 FCString::Atof(*MaxAltitudeInput->GetText().ToString()),
                 FCString::Atof(*MinLatitudeInput->GetText().ToString()),
                 FCString::Atof(*MaxLatitudeInput->GetText().ToString()),
-                FCString::Atof(*MinLongitudeInput->GetText().ToString()),
-                FCString::Atof(*MaxLongitudeInput->GetText().ToString()),
+                ParsedMinLongitude, // Store calculated Min Longitude
+                ParsedMaxLongitude, // Store calculated Max Longitude
                 HeightmapData,
                 Width,
                 Height))
@@ -269,8 +277,6 @@ FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
     
     FString MinLatitude = MinLatitudeInput->GetText().ToString();
     FString MaxLatitude = MaxLatitudeInput->GetText().ToString();
-    FString MinLongitude = MinLongitudeInput->GetText().ToString();
-    FString MaxLongitude = MaxLongitudeInput->GetText().ToString();
     FString MinAltitude = MinAltitudeInput->GetText().ToString();
     FString MaxAltitude = MaxAltitudeInput->GetText().ToString();
     FString SeaLevel = SeaLevelInput->GetText().ToString();
@@ -280,15 +286,14 @@ FReply BiomeEditorToolkit::OnCalculateBiomeClicked()
     int32 MonthsPerYear = FCString::Atoi(*MonthsPerYearInput->GetText().ToString());
 
     // Initialize planetary time
-    FPlanetTime PlanetTime(DayLength, YearLength, MonthsPerYear);
+    FPlanetTime PlanetTime(DayLength, YearLength, MonthsPerYear);    
 
-    
-
+     // Use the stored longitude values instead of UI inputs
     FString BiomeResults = BiomeCalculatorInstance->CalculateBiomeFromInput(
         MinLatitude,
         MaxLatitude,
-        MinLongitude,
-        MaxLongitude,
+        ParsedMinLongitude, // Use calculated Min Longitude
+        ParsedMaxLongitude, // Use calculated Max Longitude
         MinAltitude,
         MaxAltitude,
         SeaLevel,

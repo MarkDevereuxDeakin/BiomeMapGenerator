@@ -28,12 +28,13 @@ private:
     TSharedPtr<SEditableTextBox> YearLengthInput;
     TSharedPtr<SEditableTextBox> MonthsPerYearInput;
     TSharedPtr<SEditableTextBox> MinLatitudeInput;
-    TSharedPtr<SEditableTextBox> MaxLatitudeInput;
-    TSharedPtr<SEditableTextBox> MinLongitudeInput;
-    TSharedPtr<SEditableTextBox> MaxLongitudeInput;
+    TSharedPtr<SEditableTextBox> MaxLatitudeInput;    
     TSharedPtr<SEditableTextBox> MinAltitudeInput;
     TSharedPtr<SEditableTextBox> MaxAltitudeInput;
     TSharedPtr<SEditableTextBox> SeaLevelInput;
+    
+    float ParsedMinLongitude = 0.0f;
+    float ParsedMaxLongitude = 0.0f;
 
     // UI Text Blocks
     TSharedPtr<STextBlock> UploadStatusText;

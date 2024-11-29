@@ -68,8 +68,8 @@ FString UBiomeCalculator::CalculateBiome(
 FString UBiomeCalculator::CalculateBiomeFromInput(
     const FString& MinLatitudeStr, 
     const FString& MaxLatitudeStr, 
-    const FString& MinLongitudeStr, 
-    const FString& MaxLongitudeStr, 
+    float OutMinLongitude, // Use calculated Min Longitude
+    float OutMaxLongitude, // Use calculated Max Longitude 
     const FString& MinAltitudeStr, 
     const FString& MaxAltitudeStr, 
     const FString& SeaLevelStr,
@@ -79,8 +79,8 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     // Convert string inputs to floats
     float MinLatitude = FCString::Atof(*MinLatitudeStr);
     float MaxLatitude = FCString::Atof(*MaxLatitudeStr);
-    float MinLongitude = FCString::Atof(*MinLongitudeStr);
-    float MaxLongitude = FCString::Atof(*MaxLongitudeStr);
+    float MinLongitude = OutMinLongitude; // Use calculated Min Longitude
+    float MaxLongitude = OutMaxLongitude; // Use calculated Max Longitude
     float MinAltitude = FCString::Atof(*MinAltitudeStr) / 1000.0f;
     float MaxAltitude = FCString::Atof(*MaxAltitudeStr) / 1000.0f;
     float SeaLevel = FCString::Atof(*SeaLevelStr) / 1000.0f;

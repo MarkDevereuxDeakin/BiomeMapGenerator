@@ -17,13 +17,14 @@ public:
      * @param MaxAltitude - Maximum altitude in the heightmap.
      * @param MinLatitude - Minimum latitude of the region.
      * @param MaxLatitude - Maximum latitude of the region.
-     * @param MinLongitude - Minimum longitude of the region.
-     * @param MaxLongitude - Maximum longitude of the region.
+     * @param OutMinLongitude - Output minimum longitude estimate.
+     * @param OutMaxLongitude - Output maximum longitude estimate.
      * @param OutData - Output array of parsed heightmap cells.
-     * @param Width - Width of the heightmap.
-     * @param Height - Height of the heightmap.
+     * @param Width - Width of the heightmap (in pixels).
+     * @param Height - Height of the heightmap (in pixels).
      * @return True if parsing was successful.
      */
+
     static bool ParseHeightmap(
         const FString& FilePath,
         float SeaLevel,
@@ -31,21 +32,31 @@ public:
         float MaxAltitude,
         float MinLatitude,
         float MaxLatitude,
-        float MinLongitude,
-        float MaxLongitude,
+        float& OutMinLongitude,
+        float& OutMaxLongitude,
         TArray<FHeightmapCell>& OutData,
         int32& Width,
         int32& Height);
 
 private:
     /**
-     * Loads raw heightmap data into memory.
-     * @param FilePath - Path to the heightmap file.
-     * @param OutHeightmapData - Raw byte data of the heightmap.
-     * @param OutWidth - Width of the heightmap.
-     * @param OutHeight - Height of the heightmap.
-     * @return True if loading was successful.
+     * Estimate the longitude range for a heightmap.
+     * @param MinLatitude - Minimum latitude.
+     * @param MaxLatitude - Maximum latitude.
+     * @param Width - Width of the heightmap (pixels).
+     * @param Height - Height of the heightmap (pixels).
+     * @param OutMinLongitude - Output minimum longitude estimate.
+     * @param OutMaxLongitude - Output maximum longitude estimate.
      */
+
+    static void EstimateLongitudeRange(
+        float MinLatitude,
+        float MaxLatitude,
+        int32 Width,
+        int32 Height,
+        float& OutMinLongitude,
+        float& OutMaxLongitude);
+
     static bool LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight);
 
     /** Parsing methods for specific formats */

@@ -12,8 +12,8 @@ bool HeightmapParser::ParseHeightmap(
     float MaxAltitude,
     float MinLatitude,
     float MaxLatitude,
-    float MinLongitude,
-    float MaxLongitude,
+    float& OutMinLongitude,
+    float& OutMaxLongitude,
     TArray<FHeightmapCell>& OutData,
     int32& Width,
     int32& Height)
@@ -26,7 +26,14 @@ bool HeightmapParser::ParseHeightmap(
         return false;
     }
 
+    // Estimate longitude range
+    EstimateLongitudeRange(MinLatitude, MaxLatitude, Width, Height, OutMinLongitude, OutMaxLongitude);
+
+    // Further processing of the heightmap data...
+    // Populate OutData with FHeightmapCell values based on loaded data.
+
     // Prepare output array
+
     OutData.Empty(Width * Height);
 
     for (int32 y = 0; y < Height; ++y)
@@ -40,7 +47,7 @@ bool HeightmapParser::ParseHeightmap(
 
             // Compute latitude and longitude
             Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(Height));
-            Cell.Longitude = MinLongitude + (MaxLongitude - MinLongitude) * (x / static_cast<float>(Width));
+            Cell.Longitude = OutMinLongitude + (OutMaxLongitude - OutMinLongitude) * (x / static_cast<float>(Width));
 
             // Calculate altitude
             Cell.Altitude = CalculateAltitude(PixelValue, MinAltitude, MaxAltitude);
@@ -69,6 +76,35 @@ bool HeightmapParser::ParseHeightmap(
     }
 
     return true;
+}
+
+void HeightmapParser::EstimateLongitudeRange(
+    float MinLatitude,
+    float MaxLatitude,
+    int32 Width,
+    int32 Height,
+    float& OutMinLongitude,
+    float& OutMaxLongitude)
+{
+    // Calculate latitude per pixel
+    float LatitudeRange = MaxLatitude - MinLatitude;
+    float LatitudePerPixel = LatitudeRange / Height;
+
+    // Calculate the average latitude for the heightmap
+    float AverageLatitude = (MinLatitude + MaxLatitude) / 2.0f;
+
+    // Convert average latitude to radians
+    float AverageLatitudeRadians = FMath::DegreesToRadians(AverageLatitude);
+
+    // Calculate longitude per pixel at the average latitude
+    float LongitudePerPixel = LatitudePerPixel / FMath::Cos(AverageLatitudeRadians);
+
+    // Calculate total longitude range
+    float LongitudeRange = LongitudePerPixel * Width;
+
+    // Estimate min and max longitude
+    OutMinLongitude = -LongitudeRange / 2.0f; // Centering longitude at 0
+    OutMaxLongitude = LongitudeRange / 2.0f;
 }
 
 bool HeightmapParser::LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight)
