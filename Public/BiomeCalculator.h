@@ -36,6 +36,6 @@ public:
         const FPlanetTime& PlanetTime); 
 
         // Declare the function to filter biome candidates
-    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);   
+    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation);   
 
 };

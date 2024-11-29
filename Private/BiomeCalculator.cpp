@@ -50,12 +50,12 @@ FString UBiomeCalculator::CalculateBiome(
      WindUtils::AdjustWeatherFactors(IsOnshore, WindStrength, Precipitation, AdjustedTemperature, DistanceToOcean);
 
     // Filter Biomes based on adjusted values
-    TArray<FString> Candidates = FilterBiomeCandidates(AdjustedTemperature, Precipitation, OceanTempEffect);
+    TArray<FString> Candidates = FilterBiomeCandidates(AdjustedTemperature, Precipitation);
 
     // Calculate biome probabilities - Remove or comment this out once debugging is complete
     if (Candidates.Num() > 0 && Candidates[0] != "Unknown Biome")
     {
-        return CalculateBiomeProbabilities(AdjustedTemperature, Precipitation, OceanTempEffect, Candidates);
+        return CalculateBiomeProbabilities(AdjustedTemperature, Precipitation, Candidates);
     }
     
     return "Unknown Biome";
@@ -132,63 +132,33 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     return FinalBiomes;
 }
 
-TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect)
+TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperature, float Precipitation)
 {
     // Array of candidate biomes
     TArray<FString> Candidates;
 
-    // Handle extreme climates
-    if (AdjustedTemperature > 30 || Precipitation > 3000)
-        Candidates.Add( "Extreme Tropical Climate");
-    if (AdjustedTemperature < -20 || Precipitation < 50)
-        Candidates.Add( "Extreme Polar Climate");
-
    // Biome classification logic
-    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 25 && Precipitation >= 2000) Candidates.Add("Tropical Rainforest");
-
-     if (AdjustedTemperature >= 20 && AdjustedTemperature <= 26 && Precipitation >= 1000 && Precipitation <= 2000) Candidates.Add( "Tropical Seasonal Forest");
-      if (AdjustedTemperature > 19 && AdjustedTemperature < 35 && Precipitation >= 1500 && Precipitation <= 2500 && OceanTempEffect > 800) Candidates.Add( "Monsoon Forests");
-
-    if (AdjustedTemperature >= 24 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1650) Candidates.Add( "Savanna"); //More tropical. Hot wet summer and cooler dry winters
-    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1500 && OceanTempEffect > 600) Candidates.Add( "Grass Savanna");
-    if (AdjustedTemperature >= 22 && AdjustedTemperature <= 29 && Precipitation >= 500 && Precipitation <= 1700 && OceanTempEffect > 800) Candidates.Add( "Tree Savanna");
-    
-    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 20 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect > 500) Candidates.Add( "Temperate Steppe and Savanna");
-    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 20 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect < 600) Candidates.Add( "Dry Steppe");// semi arid transition between grassland and desert. Short grasses, hot summers and cold winters
-    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 35 && Precipitation >= 250 && Precipitation <= 500 && OceanTempEffect < 500) Candidates.Add( "Semiarid Desert");// Basically Dry Steppe
-
-    if (AdjustedTemperature >= -30 && AdjustedTemperature <= 30 && Precipitation >= 750 && Precipitation <= 1700 && OceanTempEffect > 800) Candidates.Add( "Temperate Broadleaf");
-    
-    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 26 && Precipitation >= 1000 && Precipitation < 2000 && OceanTempEffect > 1200) Candidates.Add( "Subtropical Evergreen Forest");
-
-
-    if (AdjustedTemperature > 10 && AdjustedTemperature <= 35 && Precipitation >= 500 && Precipitation <= 900 && OceanTempEffect > 1000) Candidates.Add( "Mediterranean");
-    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 40 && Precipitation >= 200 && Precipitation <= 400 && OceanTempEffect < 700) Candidates.Add( "Xeric Shrubland");// similar to mediterranean but drier. Xeric actually means dry
-    if (AdjustedTemperature >= -1 && AdjustedTemperature <= 38 && Precipitation >= 200 && Precipitation <= 1000 && OceanTempEffect < 500) Candidates.Add( "Scrub/Shrubland");
-   
-    if (AdjustedTemperature > 30 && AdjustedTemperature < 50 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add( "Arid Desert");
-    if (AdjustedTemperature > 30 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add("Hot Desert");
-
-    if (AdjustedTemperature >= -12 && AdjustedTemperature <= 10 && Precipitation >= 300 && Precipitation <= 600 && OceanTempEffect > 500) Candidates.Add( "Alpine Tundra");// Tundra of Altitude
-    if (AdjustedTemperature > -34 && AdjustedTemperature < 12 && Precipitation <= 250 && OceanTempEffect <= 300) Candidates.Add( "Tundra");// Polar Tundra
-    
-    
-    
-    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 30 && Precipitation >= 500 && Precipitation <= 1700 && OceanTempEffect > 900) Candidates.Add( "Dry Forest and Woodland Savanna");
-    
-    if (AdjustedTemperature >= 5 && AdjustedTemperature <= 15 && Precipitation > 1000 && Precipitation <= 1500 && OceanTempEffect > 700) Candidates.Add( "Montane Forests and Grasslands");
-    if (AdjustedTemperature >= -54 && AdjustedTemperature <= 15 && Precipitation >= 200 && Precipitation <= 600 && OceanTempEffect > 500 && OceanTempEffect <= 1000) Candidates.Add( "Taiga (Boreal Forest)");
-    
-    
-    if (AdjustedTemperature < -10 && Precipitation < 250 && OceanTempEffect < 200) Candidates.Add("Polar Desert");    
-    if (AdjustedTemperature > -5 && AdjustedTemperature < 5 && Precipitation < 250 && OceanTempEffect < 500) Candidates.Add("Cold Desert");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 35 && Precipitation >= 2000) Candidates.Add("Tropical Rainforest");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 35 && Precipitation >= 1000 && Precipitation <= 2000) Candidates.Add( "Tropical Monsoon Forests");
+    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 30 && Precipitation >= 500 && Precipitation <= 1500) Candidates.Add( "Savanna"); //More tropical. Hot wet summer and cooler dry winters    
+    if (AdjustedTemperature >= -5 && AdjustedTemperature <= 25 && Precipitation >= 250 && Precipitation <= 750 ) Candidates.Add( "Temperate Steppe and Savanna");// Semiarid transition between grassland and desert. Short grasses, hot summers and cold winters
+    if (AdjustedTemperature >= -30 && AdjustedTemperature <= 30 && Precipitation >= 750 && Precipitation <= 1700 ) Candidates.Add( "Temperate Broadleaf");    
+    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 26 && Precipitation >= 1000 && Precipitation < 2000 ) Candidates.Add( "Subtropical Evergreen Forest");
+    if (AdjustedTemperature > 10 && AdjustedTemperature <= 40 && Precipitation >= 400 && Precipitation <= 900 ) Candidates.Add( "Mediterranean");
+    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 40 && Precipitation >= 100 && Precipitation <= 400 ) Candidates.Add( "Xeric Shrubland");// similar to mediterranean but drier. Xeric actually means dry
+    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 40 && Precipitation >= 400 && Precipitation <= 1250 ) Candidates.Add( "Dry Forest and Woodland Savanna");   
+    if (AdjustedTemperature > 30 && Precipitation < 250 ) Candidates.Add( "Hot Arid Desert");
+    if (AdjustedTemperature > -34 && AdjustedTemperature < 12 && Precipitation <= 250 ) Candidates.Add( "Tundra");// Polar Tundra    
+    if (AdjustedTemperature >= 5 && AdjustedTemperature <= 15 && Precipitation > 1000 && Precipitation <= 1500 ) Candidates.Add( "Montane Forests and Grasslands");
+    if (AdjustedTemperature >= -54 && AdjustedTemperature <= 15 && Precipitation >= 250 && Precipitation <= 750 ) Candidates.Add( "Taiga (Boreal Forest)");       
+    if (AdjustedTemperature < 5 && Precipitation < 250) Candidates.Add("Cold or Polar Desert");
 
     // Add a fallback if no candidates were found - remove or comment this out if debugging is complete
     
     if (Candidates.Num() == 0 && counter > 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("No biomes matched for Temp=%.2f, Precip=%.2f, OceanTempEffect=%.2f"),
-               AdjustedTemperature, Precipitation, OceanTempEffect);
+        UE_LOG(LogTemp, Warning, TEXT("No biomes matched for Temp=%.2f, Precip=%.2f"),
+               AdjustedTemperature, Precipitation);
         Candidates.Add("Unknown Biome");
 
         counter--;

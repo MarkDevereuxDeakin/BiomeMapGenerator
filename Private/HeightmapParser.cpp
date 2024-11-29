@@ -73,38 +73,41 @@ bool HeightmapParser::ParseHeightmap(
 
 bool HeightmapParser::LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight)
 {
+    // Get file extension
     FString FileExtension = FPaths::GetExtension(FilePath).ToLower();
 
+    // Load the file into memory
+    if (!FFileHelper::LoadFileToArray(OutHeightmapData, *FilePath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap file: %s"), *FilePath);
+        return false;
+    }
+
+    // Handle supported formats
     if (FileExtension == TEXT("png") || FileExtension == TEXT("jpg") || FileExtension == TEXT("jpeg"))
     {
         return ParseImageHeightmap(FilePath, OutHeightmapData, OutWidth, OutHeight);
     }
     else if (FileExtension == TEXT("r16"))
     {
-        if (!FFileHelper::LoadFileToArray(OutHeightmapData, *FilePath))
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap file: %s"), *FilePath);
-            return false;
-        }
-
         return ParseR16Heightmap(OutHeightmapData, OutWidth, OutHeight);
+    }
+    else if (FileExtension == TEXT("r32"))
+    {
+        return ParseR32Heightmap(OutHeightmapData, OutWidth, OutHeight);
     }
     else if (FileExtension == TEXT("raw"))
     {
-        if (!FFileHelper::LoadFileToArray(OutHeightmapData, *FilePath))
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap file: %s"), *FilePath);
-            return false;
-        }
-
-        // Detect bit depth based on file size
+        // Detect bit depth and parse accordingly
         int32 DataSize = OutHeightmapData.Num();
-        int32 NumSamples = FMath::Sqrt(static_cast<float>(DataSize / 2)); // Assume 16-bit first
-        if (NumSamples * NumSamples * 2 == DataSize)
+        int32 NumSamples16 = FMath::Sqrt(static_cast<float>(DataSize / 2)); // 16-bit assumption
+        int32 NumSamples32 = FMath::Sqrt(static_cast<float>(DataSize / 4)); // 32-bit assumption
+
+        if (NumSamples16 * NumSamples16 * 2 == DataSize)
         {
             return ParseR16Heightmap(OutHeightmapData, OutWidth, OutHeight);
         }
-        else if (NumSamples * NumSamples * 4 == DataSize)
+        else if (NumSamples32 * NumSamples32 * 4 == DataSize)
         {
             return ParseR32Heightmap(OutHeightmapData, OutWidth, OutHeight);
         }
@@ -115,26 +118,61 @@ bool HeightmapParser::LoadHeightmap(const FString& FilePath, TArray<uint8>& OutH
         }
     }
 
+    // Unsupported file extension
     UE_LOG(LogTemp, Error, TEXT("Unsupported file extension: %s"), *FileExtension);
     return false;
 }
 
-bool HeightmapParser::ParseRawHeightmap(const TArray<uint8>& RawData, int32& Width, int32& Height)
+
+bool HeightmapParser::ParseRawHeightmap(TArray<uint8>& RawData, int32& Width, int32& Height)
 {
-    int32 NumPixels = RawData.Num();
-
-    // Ensure the data represents a square heightmap
-    Width = FMath::Sqrt(static_cast<float>(NumPixels));
-    Height = Width;
-
-    if (Width * Height != NumPixels)
+    if (RawData.Num() % 2 == 0) // Assume 16-bit if divisible by 2
     {
-        UE_LOG(LogTemp, Error, TEXT("ParseRawHeightmap: Data does not represent a square heightmap."));
-        return false;
+        int32 NumSamples = RawData.Num() / 2;
+
+        Width = FMath::Sqrt(static_cast<float>(NumSamples));
+        Height = Width;
+
+        if (Width * Height != NumSamples)
+        {
+            UE_LOG(LogTemp, Error, TEXT("ParseRawHeightmap: Data does not represent a square heightmap."));
+            return false;
+        }
+
+        if (IsBigEndian(RawData, 16))
+        {
+            UE_LOG(LogTemp, Log, TEXT("Raw data is 16-bit big-endian. Conversion required."));
+            ConvertToLittleEndian(RawData);
+        }
+
+        return true;
+    }
+    else if (RawData.Num() % 4 == 0) // Assume 32-bit if divisible by 4
+    {
+        int32 NumSamples = RawData.Num() / 4;
+
+        Width = FMath::Sqrt(static_cast<float>(NumSamples));
+        Height = Width;
+
+        if (Width * Height != NumSamples)
+        {
+            UE_LOG(LogTemp, Error, TEXT("ParseRawHeightmap: Data does not represent a square heightmap."));
+            return false;
+        }
+
+        if (IsBigEndian(RawData, 32))
+        {
+            UE_LOG(LogTemp, Log, TEXT("Raw data is 32-bit big-endian. Conversion required."));
+            ConvertToLittleEndian32(RawData);
+        }
+
+        return true;
     }
 
-    return true;
+    UE_LOG(LogTemp, Error, TEXT("ParseRawHeightmap: Unsupported raw file size. Must be 16-bit or 32-bit."));
+    return false;
 }
+
 
 bool HeightmapParser::ParseR16Heightmap(TArray<uint8>& RawData, int32& Width, int32& Height)
 {
@@ -157,7 +195,7 @@ bool HeightmapParser::ParseR16Heightmap(TArray<uint8>& RawData, int32& Width, in
     }
 
     // Detect and convert endianness
-    if (IsBigEndian(RawData))
+    if (IsBigEndian(RawData, 16))
     {
         UE_LOG(LogTemp, Log, TEXT("Data is big-endian. Converting to little-endian."));
         ConvertToLittleEndian(RawData);
@@ -187,7 +225,7 @@ bool HeightmapParser::ParseR32Heightmap(TArray<uint8>& RawData, int32& Width, in
     }
 
     // Detect and convert endianness
-    if (IsBigEndian(RawData))
+    if (IsBigEndian(RawData, 32))
     {
         UE_LOG(LogTemp, Log, TEXT("Data is big-endian. Converting to little-endian."));
         ConvertToLittleEndian32(RawData);
@@ -266,21 +304,36 @@ bool HeightmapParser::ParseImageHeightmap(const FString& FilePath, TArray<uint8>
     return true;
 }
 
-bool HeightmapParser::IsBigEndian(const TArray<uint8>& RawData)
+bool HeightmapParser::IsBigEndian(const TArray<uint8>& RawData, int32 BitDepth)
 {
-    // Check the first few samples to determine endianness
-    // Assuming the file is 16-bit data, we compare the first two bytes
-    if (RawData.Num() < 2)
+    // Ensure the raw data is large enough to perform checks
+    int32 MinBytes = (BitDepth == 16) ? 2 : 4;
+    if (RawData.Num() < MinBytes)
     {
         UE_LOG(LogTemp, Error, TEXT("Raw data is too small to determine endianness."));
         return false;
     }
 
-    uint16 FirstSample = (RawData[0] << 8) | RawData[1]; // Big-endian representation
-    uint16 TestValue = *reinterpret_cast<const uint16*>(RawData.GetData()); // Native representation
+    if (BitDepth == 16)
+    {
+        uint16 FirstSample = (RawData[0] << 8) | RawData[1]; // Big-endian representation
+        uint16 TestValue = *reinterpret_cast<const uint16*>(RawData.GetData()); // Native representation
 
-    return FirstSample != TestValue; // True if data is big-endian
+        return FirstSample != TestValue; // True if data is big-endian
+    }
+    else if (BitDepth == 32)
+    {
+        uint32 FirstSample = (RawData[0] << 24) | (RawData[1] << 16) | (RawData[2] << 8) | RawData[3]; // Big-endian representation
+        uint32 TestValue = *reinterpret_cast<const uint32*>(RawData.GetData()); // Native representation
+
+        return FirstSample != TestValue; // True if data is big-endian
+    }
+
+    // Unsupported bit depth
+    UE_LOG(LogTemp, Error, TEXT("Unsupported bit depth: %d"), BitDepth);
+    return false;
 }
+
 
 void HeightmapParser::ConvertToLittleEndian(TArray<uint8>& RawData)
 {

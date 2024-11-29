@@ -1,7 +1,7 @@
 #include "PlanetTime.h"
 
-FPlanetTime::FPlanetTime(float InDayLengthSeconds, float InYearLengthDays, int32 InMonthsPerYear)
-    : DayLengthSeconds(InDayLengthSeconds),
+FPlanetTime::FPlanetTime(float InDayLengthHours, float InYearLengthDays, int32 InMonthsPerYear)
+    : DayLengthSeconds(InDayLengthHours * 3600.0f), // Converts Hours to seconds
       YearLengthDays(InYearLengthDays),
       MonthsPerYear(InMonthsPerYear),
       CurrentTimeSeconds(0.0f),
