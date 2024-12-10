@@ -34,7 +34,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                 SNew(SAltitudeSliderWidget)
                 .InitialMinAltitude(0.0f)
                 .InitialMaxAltitude(2000.0f)
-                .InitialSeaLevel(1000.0f)
+                .InitialSeaLevel(25.0f)
                 .OnAltitudeChanged_Lambda([this]() {
                     UE_LOG(LogTemp, Log, TEXT("Altitude slider values updated."));
                 })
