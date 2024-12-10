@@ -10,14 +10,19 @@ void SLatitudeSliderWidget::Construct(const FArguments& InArgs)
     ChildSlot
     [
         SNew(SMultiHandleSlider)
-        .MinValue(-90.0f)
-        .MaxValue(90.0f)
+        .MinValue(MinLatitude)
+        .MaxValue(MaxLatitude)
         .HandleValues_Lambda([this]() -> TArray<float> {
             return {MinLatitude, MaxLatitude};
         })
         .OnValueChanged(this, &SLatitudeSliderWidget::HandleSliderValueChanged)
+        .SliderInterval(10.0f)
+        .LabelFormatter([](float Value) -> FString {
+            return FString::Printf(TEXT("%.0f°"), Value); // Format as degrees
+        })
     ];
 }
+
 
 void SLatitudeSliderWidget::HandleSliderValueChanged(const TArray<float>& NewValues)
 {

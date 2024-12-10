@@ -18,8 +18,11 @@ public:
         SLATE_ATTRIBUTE(float, MinValue)
         SLATE_ATTRIBUTE(float, MaxValue)
         SLATE_ATTRIBUTE(TArray<float>, HandleValues)
+        SLATE_ATTRIBUTE(float, SliderInterval) // Add interval
         SLATE_EVENT(FOnMultiHandleSliderValueChanged, OnValueChanged)
+        SLATE_ATTRIBUTE(TFunction<FString(float)>, LabelFormatter) // Add label formatting
     SLATE_END_ARGS()
+
 
     /** Construct the widget */
     void Construct(const FArguments& InArgs);
@@ -37,6 +40,13 @@ private:
 
     /** Array of values for the handles */
     TAttribute<TArray<float>> HandleValues;
+
+        /** Interval between scale marks */
+    TAttribute<float> SliderInterval;
+
+    /** Function to format the labels */
+    TFunction<FString(float)> LabelFormatter; // Directly define as TFunction
+
 
     /** Draws the slider handles */
     virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,

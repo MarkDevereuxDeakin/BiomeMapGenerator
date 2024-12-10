@@ -3,24 +3,27 @@
 
 void SAltitudeSliderWidget::Construct(const FArguments& InArgs)
 {
-    // Initialize widget arguments
     MinAltitude = InArgs._InitialMinAltitude;
     MaxAltitude = InArgs._InitialMaxAltitude;
     SeaLevel = InArgs._InitialSeaLevel;
     OnAltitudeChanged = InArgs._OnAltitudeChanged;
 
-    // Define the widget layout
     ChildSlot
     [
         SNew(SMultiHandleSlider)
-        .MinValue(0.0f)
-        .MaxValue(2000.0f)
+        .MinValue(MinAltitude)
+        .MaxValue(MaxAltitude)
         .HandleValues_Lambda([this]() -> TArray<float> {
             return {MinAltitude, MaxAltitude, SeaLevel};
         })
         .OnValueChanged(this, &SAltitudeSliderWidget::HandleSliderValueChanged)
+        .SliderInterval(200.0f)
+        .LabelFormatter([](float Value) -> FString {
+            return FString::Printf(TEXT("%.0fm"), Value); // Format as meters
+        })
     ];
 }
+
 
 void SAltitudeSliderWidget::HandleSliderValueChanged(const TArray<float>& NewValues)
 {

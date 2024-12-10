@@ -6,6 +6,8 @@ void SMultiHandleSlider::Construct(const FArguments& InArgs)
     MinValue = InArgs._MinValue;
     MaxValue = InArgs._MaxValue;
     HandleValues = InArgs._HandleValues;
+    SliderInterval = InArgs._SliderInterval;
+    LabelFormatter = InArgs._LabelFormatter.Get(); // Assign the provided TFunction
     OnValueChanged = InArgs._OnValueChanged;
 
     ActiveHandleIndex = INDEX_NONE;
@@ -29,7 +31,7 @@ int32 SMultiHandleSlider::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 void SMultiHandleSlider::DrawSliderBar(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
     float Padding = 10.0f; // Padding for the slider bar
-    float ScaleInterval = 200.0f; // Interval between scale marks
+    float Interval = SliderInterval.Get(); // Interval for scale marks
 
     FVector2D StartPoint(AllottedGeometry.GetLocalSize().X / 2, Padding);
     FVector2D EndPoint(AllottedGeometry.GetLocalSize().X / 2, AllottedGeometry.GetLocalSize().Y - Padding);
@@ -44,14 +46,15 @@ void SMultiHandleSlider::DrawSliderBar(const FGeometry& AllottedGeometry, FSlate
         FLinearColor::Gray
     );
 
-    // Draw the graduated scale
+    // Calculate the total height of the slider bar
     float BarHeight = AllottedGeometry.GetLocalSize().Y - (2 * Padding);
-    int32 NumIntervals = FMath::CeilToInt(BarHeight / ScaleInterval); // Include both Min and Max
 
-    for (int32 i = 0; i <= NumIntervals; ++i) // Include MinValue and MaxValue
+    // Iterate over the values based on the specified interval
+    for (float Value = MinValue.Get(); Value <= MaxValue.Get(); Value += Interval)
     {
-        float PositionY = Padding + i * ScaleInterval;
-        if (PositionY > EndPoint.Y) PositionY = EndPoint.Y; // Clamp to end for exact MaxValue
+        // Calculate the vertical position for the current value
+        float NormalizedValue = (Value - MinValue.Get()) / (MaxValue.Get() - MinValue.Get());
+        float PositionY = EndPoint.Y - (NormalizedValue * BarHeight);
 
         // Draw the scale mark
         FVector2D ScaleStart(AllottedGeometry.GetLocalSize().X / 2 - 10.0f, PositionY);
@@ -66,12 +69,10 @@ void SMultiHandleSlider::DrawSliderBar(const FGeometry& AllottedGeometry, FSlate
             FLinearColor::White
         );
 
-        // Draw the scale label
-        float Value = MaxValue.Get() - ((PositionY - Padding) / BarHeight) * (MaxValue.Get() - MinValue.Get());
-        FString LabelText = FString::Printf(TEXT("%.0f"), Value);
-
-        // Adjust label position for right alignment
-        FVector2D LabelPosition = FVector2D(ScaleStart.X + 20.0f, PositionY - 7.0f); // Offset to the right
+        // Draw the scale label on the right
+        float LabelXOffset = AllottedGeometry.GetLocalSize().X / 2 + 20.0f; // Move to the right of the slider
+        FVector2D LabelPosition = FVector2D(LabelXOffset, PositionY - 7.0f); // Offset vertically to align with the mark
+        FString LabelText = LabelFormatter(Value); // Use the provided label formatter
 
         FSlateDrawElement::MakeText(
             OutDrawElements,
