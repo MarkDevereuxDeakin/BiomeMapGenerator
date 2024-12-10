@@ -28,20 +28,66 @@ int32 SMultiHandleSlider::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 
 void SMultiHandleSlider::DrawSliderBar(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
-    float Padding = 10.0f; // Adjust the padding value as needed
+    float Padding = 10.0f; // Padding for the slider bar
+    float ScaleInterval = 200.0f; // Interval between scale marks
 
     FVector2D StartPoint(AllottedGeometry.GetLocalSize().X / 2, Padding);
     FVector2D EndPoint(AllottedGeometry.GetLocalSize().X / 2, AllottedGeometry.GetLocalSize().Y - Padding);
 
+    // Draw the main slider bar
     FSlateDrawElement::MakeLines(
         OutDrawElements,
         LayerId,
-        AllottedGeometry.ToPaintGeometry(),
+        AllottedGeometry.ToPaintGeometry(FVector2f(AllottedGeometry.GetLocalSize()), FSlateLayoutTransform()),
         {StartPoint, EndPoint},
         ESlateDrawEffect::None,
         FLinearColor::Gray
     );
+
+    // Draw the graduated scale
+    float BarHeight = AllottedGeometry.GetLocalSize().Y - (2 * Padding);
+    int32 NumIntervals = FMath::CeilToInt(BarHeight / ScaleInterval); // Include both Min and Max
+
+    for (int32 i = 0; i <= NumIntervals; ++i) // Include MinValue and MaxValue
+    {
+        float PositionY = Padding + i * ScaleInterval;
+        if (PositionY > EndPoint.Y) PositionY = EndPoint.Y; // Clamp to end for exact MaxValue
+
+        // Draw the scale mark
+        FVector2D ScaleStart(AllottedGeometry.GetLocalSize().X / 2 - 10.0f, PositionY);
+        FVector2D ScaleEnd(AllottedGeometry.GetLocalSize().X / 2 - 15.0f, PositionY);
+
+        FSlateDrawElement::MakeLines(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(FVector2f(AllottedGeometry.GetLocalSize()), FSlateLayoutTransform()),
+            {ScaleStart, ScaleEnd},
+            ESlateDrawEffect::None,
+            FLinearColor::White
+        );
+
+        // Draw the scale label
+        float Value = MaxValue.Get() - ((PositionY - Padding) / BarHeight) * (MaxValue.Get() - MinValue.Get());
+        FString LabelText = FString::Printf(TEXT("%.0f"), Value);
+
+        // Adjust label position for right alignment
+        FVector2D LabelPosition = FVector2D(ScaleStart.X + 20.0f, PositionY - 7.0f); // Offset to the right
+
+        FSlateDrawElement::MakeText(
+            OutDrawElements,
+            LayerId,
+            AllottedGeometry.ToPaintGeometry(
+                FVector2f(50.0f, 14.0f),
+                FSlateLayoutTransform(FVector2f(LabelPosition))
+            ),
+            LabelText,
+            FCoreStyle::Get().GetFontStyle("NormalFont"),
+            ESlateDrawEffect::None,
+            FLinearColor::White
+        );
+    }
 }
+
 
 void SMultiHandleSlider::DrawHandles(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
