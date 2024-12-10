@@ -1,22 +1,25 @@
-// MainWidget.cpp
 #include "MainWidget.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
-
+#include "ButtonRowWidget.h"
 
 void SMainWidget::Construct(const FArguments& InArgs)
 {
     DayLengthHours = InArgs._InitialDayLengthHours;
     YearLengthDays = InArgs._InitialYearLengthDays;
     OnParametersChanged = InArgs._OnParametersChanged;
+    OnUploadHeightmap = InArgs._OnUploadHeightmap;
+    OnCalculateBiome = InArgs._OnCalculateBiome;
 
     ChildSlot
     [
         SNew(SVerticalBox)
 
+        // Day Length Input
         + SVerticalBox::Slot()
         .AutoHeight()
+        .Padding(10) // Add some padding between inputs
         [
             SNew(SHorizontalBox)
 
@@ -37,8 +40,10 @@ void SMainWidget::Construct(const FArguments& InArgs)
             ]
         ]
 
+        // Year Length Input
         + SVerticalBox::Slot()
         .AutoHeight()
+        .Padding(10)
         [
             SNew(SHorizontalBox)
 
@@ -57,6 +62,17 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(YearLengthDays))
                 .OnTextCommitted(this, &SMainWidget::OnYearLengthChanged)
             ]
+        ]
+
+        // Centralized Buttons (using ButtonRowWidget)
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center) // Center the buttons horizontally
+        .Padding(10) // Add padding around buttons
+        [
+            SNew(SButtonRowWidget)
+            .OnUploadHeightmap(OnUploadHeightmap)
+            .OnCalculateBiome(OnCalculateBiome)
         ]
     ];
 }

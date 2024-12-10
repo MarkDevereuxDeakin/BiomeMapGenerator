@@ -34,7 +34,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                 SNew(SAltitudeSliderWidget)
                 .InitialMinAltitude(0.0f)
                 .InitialMaxAltitude(2000.0f)
-                .InitialSeaLevel(25.0f)
+                .InitialSeaLevel(1000.0f)
                 .OnAltitudeChanged_Lambda([this]() {
                     UE_LOG(LogTemp, Log, TEXT("Altitude slider values updated."));
                 })
@@ -56,16 +56,6 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                     .OnParametersChanged_Lambda([]() {
                         UE_LOG(LogTemp, Log, TEXT("MainWidget parameters changed."));
                     })
-                ]
-
-                // Button Row
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 10) // Space between MainWidget and ButtonRow
-                [
-                    SNew(SButtonRowWidget)
-                    .OnUploadHeightmap(this, &BiomeEditorToolkit::OnUploadButtonClicked)
-                    .OnCalculateBiome(this, &BiomeEditorToolkit::OnCalculateBiomeClicked)
                 ]
 
                 // Results Widget

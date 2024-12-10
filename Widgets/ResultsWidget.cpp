@@ -13,7 +13,7 @@ void SResultsWidget::Construct(const FArguments& InArgs)
         // Result Display
         + SVerticalBox::Slot()
         .AutoHeight()
-        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
         [
             SAssignNew(ResultsTextBlock, STextBlock)
             .Text(FText::FromString("Results will be displayed here."))
