@@ -36,8 +36,8 @@ public:
 
     /**
      * Calculate biomes for an entire heightmap input.
-     * @param MinLatitudeStr - Minimum latitude (string format).
-     * @param MaxLatitudeStr - Maximum latitude (string format).
+     * @param MinLatitudeSlider - Minimum latitude (Slider).
+     * @param MaxLatitudeSlider - Maximum latitude (Slider).
      * @param OutMinLongitude - Calculated minimum longitude (float).
      * @param OutMaxLongitude - Calculated maximum longitude (float).
      * @param MinAltitudeStr - Minimum altitude (string format).
@@ -50,13 +50,13 @@ public:
     
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
     FString CalculateBiomeFromInput(
-        const FString& MinLatitudeStr,
-        const FString& MaxLatitudeStr,
+        float MinLatitude, // Use value from slider
+        float MaxLatitude, // Use value from slider
         float OutMinLongitude, // Use calculated Min Longitude
         float OutMaxLongitude, // Use calculated Max Longitude
-        const FString& MinAltitudeStr,
-        const FString& MaxAltitudeStr,
-        const FString& SeaLevelStr,
+        float MinAltitudeStr, // Use value from slider
+        float MaxAltitudeStr, // Use value from slider
+        float SeaLevelStr, // Use value from slider
         const TArray<FHeightmapCell>& HeightmapData,
         const FPlanetTime& PlanetTime);
 

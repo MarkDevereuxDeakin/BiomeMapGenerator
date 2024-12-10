@@ -66,24 +66,25 @@ FString UBiomeCalculator::CalculateBiome(
 }
 
 FString UBiomeCalculator::CalculateBiomeFromInput(
-    const FString& MinLatitudeStr, 
-    const FString& MaxLatitudeStr, 
+    float MinLatitudeSlider, // Use value from slider
+    float MaxLatitudeSlider, // Use value from slider 
     float OutMinLongitude, // Use calculated Min Longitude
     float OutMaxLongitude, // Use calculated Max Longitude 
-    const FString& MinAltitudeStr, 
-    const FString& MaxAltitudeStr, 
-    const FString& SeaLevelStr,
+    float MinAltitudeSlider, // Use value from slider 
+    float MaxAltitudeSlider,  // Use value from slider
+    float SeaLevelSlider, // Use value from slider
     const TArray<FHeightmapCell>& HeightmapData,
     const FPlanetTime& PlanetTime)
 {
     // Convert string inputs to floats
-    float MinLatitude = FCString::Atof(*MinLatitudeStr);
-    float MaxLatitude = FCString::Atof(*MaxLatitudeStr);
+    float MinLatitude = MinLatitudeSlider;
+    float MaxLatitude = MaxLatitudeSlider;
     float MinLongitude = OutMinLongitude; // Use calculated Min Longitude
     float MaxLongitude = OutMaxLongitude; // Use calculated Max Longitude
-    float MinAltitude = FCString::Atof(*MinAltitudeStr) / 1000.0f;
-    float MaxAltitude = FCString::Atof(*MaxAltitudeStr) / 1000.0f;
-    float SeaLevel = FCString::Atof(*SeaLevelStr) / 1000.0f;
+    float MinAltitude = MinAltitudeSlider; // Use value from slider
+    float MaxAltitude = MaxAltitudeSlider; // Use value from slider
+    float SeaLevel = SeaLevelSlider; // Use value from slider
+
 
     // Check for invalid input ranges
     if (MinLatitude > MaxLatitude || MinLongitude > MaxLongitude || MinAltitude > MaxAltitude)
