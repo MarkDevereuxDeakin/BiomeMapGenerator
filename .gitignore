@@ -73,13 +73,21 @@ Plugins/*/Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 
-#.ignore these specific files
-*BiomeCalculator.cpp
-*BiomeCalculator.h
-*BiomeWeightProbability.cpp
-*BiomeWeightProbability.h
-*HeightmapCell.h
-*HeightmapParser.cpp
-*HeightmapParser.h
-*PlanetTime.cpp
-*PlanetTime.h
+#.ignore these specific folders
+Public/*
+Private/*
+!Private/Altitude.cpp
+!Private/BiomeCalculatorWidget.cpp
+!Private/BiomeEditorMode.cpp
+!Private/BiomeMapper.cpp
+!Private/DistanceToOcean.cpp
+!Private/GlobalWind.cpp
+!Private/Humidity.cpp
+!Private/OceanCurrents.cpp
+!Private/OCeanTemperature.cpp
+!Private/Precipitation.cpp
+!Private/PressureBasedWind.cpp
+!Private/SeasonalWind.cpp
+!Private/Temperature.cpp
+!Private/UnifiedWindCalculator.cpp
+!Private/WindUtils.cpp
