@@ -9,9 +9,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
     DayLengthHours = InArgs._InitialDayLengthHours;
     YearLengthDays = InArgs._InitialYearLengthDays;
     OnParametersChanged = InArgs._OnParametersChanged;
-    OnUploadHeightmap = InArgs._OnUploadHeightmap;
-    OnCalculateBiome = InArgs._OnCalculateBiome;
-
+    
     ChildSlot
     [
         SNew(SVerticalBox)
@@ -64,16 +62,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
             ]
         ]
 
-        // Centralized Buttons (using ButtonRowWidget)
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        .HAlign(HAlign_Center) // Center the buttons horizontally
-        .Padding(10) // Add padding around buttons
-        [
-            SNew(SButtonRowWidget)
-            .OnUploadHeightmap(OnUploadHeightmap)
-            .OnCalculateBiome(OnCalculateBiome)
-        ]
+        
     ];
 }
 

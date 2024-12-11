@@ -30,4 +30,3 @@ void SResultsWidget::UpdateResults(const FString& ResultsText)
     }
 }
 
-

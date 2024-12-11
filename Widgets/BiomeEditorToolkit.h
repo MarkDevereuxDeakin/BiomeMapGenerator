@@ -15,6 +15,7 @@ class SMainWidget;
 /**
  * Toolkit for biome editing within the Unreal Editor.
  */
+
 class BIOMEMAPPER_API BiomeEditorToolkit : public SCompoundWidget
 {
 public:

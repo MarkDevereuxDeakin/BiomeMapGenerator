@@ -20,6 +20,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 {
     BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
 
+
     ChildSlot
     [
         SNew(SBorder)
@@ -32,9 +33,9 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             .FillWidth(0.1f)
             [
                 SNew(SAltitudeSliderWidget)
-                .InitialMinAltitude(0.0f)
-                .InitialMaxAltitude(2000.0f)
-                .InitialSeaLevel(1000.0f)
+                .InitialMinAltitude(MinAltitudeSlider)
+                .InitialMaxAltitude(MaxAltitudeSlider)
+                .InitialSeaLevel(SeaLevelSlider)
                 .OnAltitudeChanged_Lambda([this]() {
                     UE_LOG(LogTemp, Log, TEXT("Altitude slider values updated."));
                 })
@@ -58,6 +59,17 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                     })
                 ]
 
+               // Centralized Buttons (using ButtonRowWidget)
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .HAlign(HAlign_Center)
+                .Padding(10)
+                [
+                    SNew(SButtonRowWidget)
+                    .OnUploadHeightmap(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnUploadButtonClicked))
+                    .OnCalculateBiome(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnCalculateBiomeClicked))
+                ]
+
                 // Results Widget
                 + SVerticalBox::Slot()
                 .FillHeight(1.0f)
@@ -72,8 +84,8 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             .FillWidth(0.1f)
             [
                 SNew(SLatitudeSliderWidget)
-                .InitialMinLatitude(-90.0f)
-                .InitialMaxLatitude(90.0f)
+                .InitialMinLatitude(MinLatitudeSlider)
+                .InitialMaxLatitude(MaxLatitudeSlider)
                 .OnLatitudeChanged_Lambda([this]() {
                     UE_LOG(LogTemp, Log, TEXT("Latitude slider values updated."));
                 })
