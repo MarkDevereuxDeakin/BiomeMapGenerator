@@ -84,7 +84,7 @@ Private/*
 !Private/GlobalWind.cpp
 !Private/Humidity.cpp
 !Private/OceanCurrents.cpp
-!Private/OCeanTemperature.cpp
+!Private/OceanTemperature.cpp
 !Private/Precipitation.cpp
 !Private/PressureBasedWind.cpp
 !Private/SeasonalWind.cpp
