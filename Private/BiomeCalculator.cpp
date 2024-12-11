@@ -140,17 +140,17 @@ TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperatur
 
    // Biome classification logic
     if (AdjustedTemperature >= 20 && AdjustedTemperature <= 35 && Precipitation >= 2000) Candidates.Add("Tropical Rainforest");
-    if (AdjustedTemperature >= 20 && AdjustedTemperature <= 35 && Precipitation >= 1000 && Precipitation <= 2000) Candidates.Add( "Tropical Monsoon Forests");
+    if (AdjustedTemperature >= 15 && AdjustedTemperature <= 35 && Precipitation >= 1000) Candidates.Add( "Tropical Monsoon Forests");
     if (AdjustedTemperature >= 20 && AdjustedTemperature <= 30 && Precipitation >= 500 && Precipitation <= 1500) Candidates.Add( "Savanna"); //More tropical. Hot wet summer and cooler dry winters    
     if (AdjustedTemperature >= -5 && AdjustedTemperature <= 25 && Precipitation >= 250 && Precipitation <= 750 ) Candidates.Add( "Temperate Steppe and Savanna");// Semiarid transition between grassland and desert. Short grasses, hot summers and cold winters
-    if (AdjustedTemperature >= -30 && AdjustedTemperature <= 30 && Precipitation >= 750 && Precipitation <= 1700 ) Candidates.Add( "Temperate Broadleaf");    
-    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 26 && Precipitation >= 1000 && Precipitation < 2000 ) Candidates.Add( "Subtropical Evergreen Forest");
+    if (AdjustedTemperature >= -30 && AdjustedTemperature <= 30 && Precipitation >= 750 && Precipitation <= 2000 ) Candidates.Add( "Temperate Broadleaf");    
+    if (AdjustedTemperature >= 10 && AdjustedTemperature <= 26 && Precipitation >= 1000 && Precipitation < 2500 ) Candidates.Add( "Subtropical Evergreen Forest");
     if (AdjustedTemperature > 10 && AdjustedTemperature <= 40 && Precipitation >= 400 && Precipitation <= 900 ) Candidates.Add( "Mediterranean");
     if (AdjustedTemperature >= 10 && AdjustedTemperature <= 40 && Precipitation >= 100 && Precipitation <= 400 ) Candidates.Add( "Xeric Shrubland");// similar to mediterranean but drier. Xeric actually means dry
     if (AdjustedTemperature >= 10 && AdjustedTemperature <= 40 && Precipitation >= 400 && Precipitation <= 1250 ) Candidates.Add( "Dry Forest and Woodland Savanna");   
     if (AdjustedTemperature > 30 && Precipitation < 250 ) Candidates.Add( "Hot Arid Desert");
     if (AdjustedTemperature > -34 && AdjustedTemperature < 12 && Precipitation <= 250 ) Candidates.Add( "Tundra");// Polar Tundra    
-    if (AdjustedTemperature >= 5 && AdjustedTemperature <= 15 && Precipitation > 1000 && Precipitation <= 1500 ) Candidates.Add( "Montane Forests and Grasslands");
+    if (AdjustedTemperature >= 0 && AdjustedTemperature <= 15 && Precipitation > 1000 && Precipitation <= 2200 ) Candidates.Add( "Montane Forests and Grasslands");
     if (AdjustedTemperature >= -54 && AdjustedTemperature <= 15 && Precipitation >= 250 && Precipitation <= 750 ) Candidates.Add( "Taiga (Boreal Forest)");       
     if (AdjustedTemperature < 5 && Precipitation < 250) Candidates.Add("Cold or Polar Desert");
 

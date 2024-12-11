@@ -72,3 +72,14 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+#.ignore these specific files
+BiomeCalculator.cpp
+BiomeCalculator.h
+BiomeWeightProbability.cpp
+BiomeWeightProbability.h
+HeightmapCell.h
+HeightmapParser.cpp
+HeightmapParser.h
+PlanetTime.cpp
+PlanetTime.h
