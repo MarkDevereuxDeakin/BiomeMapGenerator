@@ -12,6 +12,7 @@ class BIOMEMAPPER_API SButtonRowWidget : public SCompoundWidget
 public:
     SLATE_BEGIN_ARGS(SButtonRowWidget) {}
         SLATE_EVENT(FSimpleDelegate, OnUploadHeightmap)
+        SLATE_EVENT(FSimpleDelegate, OnAnalyzeHydrology)
         SLATE_EVENT(FSimpleDelegate, OnCalculateBiome)
     SLATE_END_ARGS()
 
@@ -20,10 +21,14 @@ public:
 
 private:
     FSimpleDelegate OnUploadHeightmap;
+    FSimpleDelegate OnAnalyzeHydrology;
     FSimpleDelegate OnCalculateBiome;
 
     /** Called when the Upload button is clicked. */
     FReply HandleUploadClicked();
+
+    /** Called when the Analyze Hydrology button is clicked */
+    FReply HandleAnalyzeHydrologyClicked();
 
     /** Called when the Calculate Biome button is clicked. */
     FReply HandleCalculationClicked();

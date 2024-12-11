@@ -7,15 +7,16 @@
 
 void SButtonRowWidget::Construct(const FArguments& InArgs)
 {
-    OnUploadHeightmap = InArgs._OnUploadHeightmap;
-    OnCalculateBiome = InArgs._OnCalculateBiome;
+    OnUploadHeightmap = InArgs._OnUploadHeightmap; // Bind delegates
+    OnCalculateBiome = InArgs._OnCalculateBiome; // Bind delegates
+    OnAnalyzeHydrology = InArgs._OnAnalyzeHydrology; // Bind delegates
 
     ChildSlot
     [
         SNew(SHorizontalBox)
 
         + SHorizontalBox::Slot()
-        .FillWidth(1.0f)
+        .AutoWidth()
         [
             SNew(SButton)
             .Text(FText::FromString("Upload Heightmap"))
@@ -23,7 +24,15 @@ void SButtonRowWidget::Construct(const FArguments& InArgs)
         ]
 
         + SHorizontalBox::Slot()
-        .FillWidth(1.0f)
+        .AutoWidth()
+        [
+            SNew(SButton)
+            .Text(FText::FromString("Analyze Hydrology")) // New button
+            .OnClicked(this, &SButtonRowWidget::HandleAnalyzeHydrologyClicked)
+        ]
+
+        + SHorizontalBox::Slot()
+        .AutoWidth()
         [
             SNew(SButton)
             .Text(FText::FromString("Calculate Biome"))
@@ -37,6 +46,15 @@ FReply SButtonRowWidget::HandleUploadClicked()
     if (OnUploadHeightmap.IsBound())
     {
         OnUploadHeightmap.Execute();
+    }
+    return FReply::Handled();
+}
+
+FReply SButtonRowWidget::HandleAnalyzeHydrologyClicked()
+{
+    if (OnAnalyzeHydrology.IsBound())
+    {
+        OnAnalyzeHydrology.Execute();
     }
     return FReply::Handled();
 }

@@ -29,6 +29,10 @@ private:
     // Biome calculator instance
     UBiomeCalculator* BiomeCalculatorInstance;
 
+    // Heightmap Dimenstions
+    int32 Width = 0;
+    int32 Height = 0;
+
     // Results Widget for displaying results
     TSharedPtr<SResultsWidget> ResultsWidget;
 
@@ -37,9 +41,13 @@ private:
     TSharedPtr<SLatitudeSliderWidget> LatitudeSliderWidget;
     TSharedPtr<SMainWidget> MainWidget;
 
-    // Callback functions for button events
+    // Callback functions for button events    
     void OnUploadButtonClicked();
+    void OnAnalyzeHydrologyClicked();
     void OnCalculateBiomeClicked();
+
+    // Heightmap texture creation method
+    UTexture2D* CreateHeightmapTexture(const TArray<FHeightmapCell>& MapData, int32 HeightmapWidth, int32 HeightmapHeight);
 
     // Helper variables for storing slider values
     float MinLatitudeSlider = -90.0f;

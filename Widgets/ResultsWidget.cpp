@@ -17,8 +17,16 @@ void SResultsWidget::Construct(const FArguments& InArgs)
         [
             SAssignNew(ResultsTextBlock, STextBlock)
             .Text(FText::FromString("Results will be displayed here."))
+        ]
+
+        // Heightmap Image
+        + SVerticalBox::Slot()
+        .FillHeight(1.0f)
+        .HAlign(HAlign_Center)
+        .VAlign(VAlign_Center)
+        [
+            SAssignNew(HeightmapImage, SImage)
         ]        
-        
     ];
 }
 
@@ -30,3 +38,23 @@ void SResultsWidget::UpdateResults(const FString& ResultsText)
     }
 }
 
+void SResultsWidget::UpdateHeightmapTexture(UTexture2D* HeightmapTexture)
+{
+    if (!HeightmapTexture)
+    {
+        return;
+    }
+
+    if (!HeightmapBrush.IsValid())
+    {
+        HeightmapBrush = MakeShareable(new FSlateBrush());
+    }
+
+    HeightmapBrush->SetResourceObject(HeightmapTexture);
+    HeightmapBrush->ImageSize = FVector2D(HeightmapTexture->GetSizeX(), HeightmapTexture->GetSizeY());
+
+    if (HeightmapImage.IsValid())
+    {
+        HeightmapImage->SetImage(HeightmapBrush.Get());
+    }
+}

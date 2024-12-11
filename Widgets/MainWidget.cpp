@@ -23,17 +23,20 @@ void SMainWidget::Construct(const FArguments& InArgs)
 
             + SHorizontalBox::Slot()
             .AutoWidth()
+            .Padding(10, 0)
             [
                 SNew(STextBlock)
                 .Text(FText::FromString("Day Length (Hours):"))
-                .Justification(ETextJustify::Right)
+                .Justification(ETextJustify::Left)
             ]
 
             + SHorizontalBox::Slot()
             .FillWidth(1.0f)
+            .Padding(10, 0)
             [
                 SNew(SEditableTextBox)
                 .Text(FText::AsNumber(DayLengthHours))
+                .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnDayLengthChanged)
             ]
         ]
@@ -47,17 +50,20 @@ void SMainWidget::Construct(const FArguments& InArgs)
 
             + SHorizontalBox::Slot()
             .AutoWidth()
+            .Padding(10, 0)
             [
                 SNew(STextBlock)
                 .Text(FText::FromString("Year Length (Days):"))
-                .Justification(ETextJustify::Right)
+                .Justification(ETextJustify::Left)
             ]
 
             + SHorizontalBox::Slot()
             .FillWidth(1.0f)
+            .Padding(10, 0)
             [
                 SNew(SEditableTextBox)
                 .Text(FText::AsNumber(YearLengthDays))
+                .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnYearLengthChanged)
             ]
         ]

@@ -10,14 +10,16 @@ public class BiomeMapper : ModuleRules
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
-				"BiomeMapper/Widgets"
+				"BiomeMapper/Widgets",
+                "BiomeMapper/Public"
 			}
 			);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"BiomeMapper/Widgets"
+				"BiomeMapper/Widgets",
+                "BiomeMapper/Private"
 			}
 			);
 			

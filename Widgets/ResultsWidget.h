@@ -15,6 +15,13 @@ public:
     /** Updates the displayed results. */
     void UpdateResults(const FString& ResultsText);
 
+     /** Updates the displayed heightmap texture. */
+    void UpdateHeightmapTexture(UTexture2D* HeightmapTexture);
+
+private:
+
     // Result Display
     TSharedPtr<STextBlock> ResultsTextBlock;
+    TSharedPtr<SImage> HeightmapImage; // Image for displaying the heightmap
+    TSharedPtr<FSlateBrush> HeightmapBrush; // Brush for the heightmap texture
 };

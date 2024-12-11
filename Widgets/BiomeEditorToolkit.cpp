@@ -8,6 +8,7 @@
 #include "ButtonRowWidget.h"
 #include "ResultsWidget.h"
 #include "SidePaddingWidget.h"
+#include "HydrologyCalculator.h"
 #include "BiomeCalculator.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
@@ -15,11 +16,11 @@
 #include "Widgets/Text/STextBlock.h"
 #include "DesktopPlatformModule.h"
 #include "HeightmapParser.h"
+#include "Engine/Texture2D.h"
 
 void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 {
     BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
-
 
     ChildSlot
     [
@@ -43,13 +44,14 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 
             // Center: Main Area
             + SHorizontalBox::Slot()
-            .FillWidth(0.8f)
+            .FillWidth(1.0f)
             [
                 SNew(SVerticalBox)
 
                 // MainWidget
                 + SVerticalBox::Slot()
                 .AutoHeight()
+                .HAlign(HAlign_Center)                
                 [
                     SNew(SMainWidget)
                     .InitialDayLengthHours(24.0f)
@@ -67,6 +69,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                 [
                     SNew(SButtonRowWidget)
                     .OnUploadHeightmap(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnUploadButtonClicked))
+                    .OnAnalyzeHydrology(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnAnalyzeHydrologyClicked))
                     .OnCalculateBiome(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnCalculateBiomeClicked))
                 ]
 
@@ -119,9 +122,7 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
         if (OutFiles.Num() > 0)
         {
             FString SelectedFile = OutFiles[0];
-            HeightmapData.Empty();
-
-            int32 Width, Height;
+            this->HeightmapData.Empty();           
 
             if (!HeightmapParser::ParseHeightmap(
                 SelectedFile,
@@ -132,9 +133,9 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
                 MaxLatitudeSlider,
                 ParsedMinLongitude,
                 ParsedMaxLongitude,
-                HeightmapData,
-                Width,
-                Height))
+                this->HeightmapData,
+                this->Width,
+                this->Height))
             {
                 if (ResultsWidget.IsValid())
                 {
@@ -144,8 +145,12 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
             }
             else
             {
+                // Create a grayscale texture from HeightmapData
+                UTexture2D* HeightmapTexture = CreateHeightmapTexture(HeightmapData, Width, Height);
+
                 if (ResultsWidget.IsValid())
                 {
+                    ResultsWidget->UpdateHeightmapTexture(HeightmapTexture);
                     ResultsWidget->UpdateResults(FString::Printf(TEXT("Loaded heightmap (%dx%d)"), Width, Height));
                 }
                 UE_LOG(LogTemp, Log, TEXT("Successfully loaded heightmap: %s"), *SelectedFile);
@@ -157,6 +162,101 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
         if (ResultsWidget.IsValid())
         {
             ResultsWidget->UpdateResults(TEXT("No file selected."));
+        }
+    }
+}
+
+UTexture2D* BiomeEditorToolkit::CreateHeightmapTexture(const TArray<FHeightmapCell>& MapData, int32 HeightmapWidth, int32 HeightmapHeight)
+{
+    // Define the target size
+    constexpr int32 MaxTargetSize = 1024;
+
+    // Calculate scale factor to fit within MaxTargetSize
+    float ScaleFactor = FMath::Min(MaxTargetSize / static_cast<float>(HeightmapWidth), 
+                                   MaxTargetSize / static_cast<float>(HeightmapHeight));
+    int32 ScaledWidth = FMath::RoundToInt(HeightmapWidth * ScaleFactor);
+    int32 ScaledHeight = FMath::RoundToInt(HeightmapHeight * ScaleFactor);
+
+
+    TArray<FColor> TextureData;
+    TextureData.Reserve(ScaledWidth * ScaledHeight);
+
+    for (int32 y = 0; y < ScaledHeight; ++y)
+    {
+        for (int32 x = 0; x < ScaledWidth; ++x)
+        {
+            // Map scaled coordinates back to original data
+            int32 OriginalX = FMath::RoundToInt(x / ScaleFactor);
+            int32 OriginalY = FMath::RoundToInt(y / ScaleFactor);
+
+            const FHeightmapCell& Cell = MapData[OriginalY * HeightmapWidth + OriginalX];
+            uint8 GrayValue = static_cast<uint8>(FMath::Clamp(Cell.Altitude * 255.0f, 0.0f, 255.0f));
+            TextureData.Add(FColor(GrayValue, GrayValue, GrayValue, 255));
+        }
+    }
+
+    UTexture2D* HeightmapTexture = UTexture2D::CreateTransient(ScaledWidth, ScaledHeight);
+    if (!HeightmapTexture)
+    {
+        return nullptr;
+    }
+
+    if (HeightmapTexture->GetPlatformData() == nullptr)
+    {
+        HeightmapTexture->SetPlatformData(new FTexturePlatformData());
+        HeightmapTexture->GetPlatformData()->SizeX = ScaledWidth;
+        HeightmapTexture->GetPlatformData()->SizeY = ScaledHeight;
+        HeightmapTexture->GetPlatformData()->PixelFormat = PF_B8G8R8A8;
+    }
+
+    // Fill texture memory
+    FTexture2DMipMap& Mip = HeightmapTexture->GetPlatformData()->Mips[0];
+    Mip.BulkData.Lock(LOCK_READ_WRITE);
+    void* TextureMemory = Mip.BulkData.Realloc(ScaledWidth * ScaledHeight * sizeof(FColor));
+    FMemory::Memcpy(TextureMemory, TextureData.GetData(), TextureData.Num() * sizeof(FColor));
+    Mip.BulkData.Unlock();
+
+    HeightmapTexture->UpdateResource();
+    return HeightmapTexture;
+}
+
+void BiomeEditorToolkit::OnAnalyzeHydrologyClicked()
+{
+    if (HeightmapData.Num() == 0)
+    {
+        if (ResultsWidget.IsValid())
+        {
+            ResultsWidget->UpdateResults(TEXT("No heightmap data available."));
+        }
+        return;
+    }
+
+    // Perform hydrology analysis
+    TArray<FVector2D> FlowDirections;
+    TArray<float> FlowAccumulation;
+    TMap<int32, TArray<FVector>> SeasonalStreamPaths;
+    float StreamThreshold = 10.0f; // Example threshold value
+
+    if (HydrologyCalculator::AnalyzeHydrology(
+            HeightmapData,
+            Width,
+            Height,
+            FlowDirections,
+            FlowAccumulation,
+            StreamThreshold,
+            SeasonalStreamPaths,
+            0.0f))
+    {
+        if (ResultsWidget.IsValid())
+        {
+            ResultsWidget->UpdateResults(TEXT("Hydrology analysis complete."));
+        }
+    }
+    else
+    {
+        if (ResultsWidget.IsValid())
+        {
+            ResultsWidget->UpdateResults(TEXT("Failed to analyze hydrology."));
         }
     }
 }
