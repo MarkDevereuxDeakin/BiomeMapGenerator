@@ -73,7 +73,7 @@ private:
     TArray<float>& OutHeightmapData,
     int32& Width,
     int32& Height,
-    int32 BitDepth);
+    int32 BitDepth);    
 
     /**
      * Calculates longitude range for the heightmap.

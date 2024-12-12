@@ -404,7 +404,7 @@ bool UHeightmapParser::GuessDimensions(int64 FileSize, int32 BitDepth, int32& Ou
     int32 BytesPerPixel = BitDepth / 8;
     int32 NumSamples = FileSize / BytesPerPixel;
 
-    TArray<int32> CommonWidths = {256, 512, 1024, 2048, 4096, 8192};
+    TArray<int32> CommonWidths = {256, 512, 1024, 2048, 4096, 8192, 16384};
     for (int32 Width : CommonWidths)
     {
         int32 Height = NumSamples / Width;
