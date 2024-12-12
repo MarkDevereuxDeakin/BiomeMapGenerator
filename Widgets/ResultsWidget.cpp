@@ -25,7 +25,13 @@ void SResultsWidget::Construct(const FArguments& InArgs)
         .HAlign(HAlign_Center)
         .VAlign(VAlign_Center)
         [
-            SAssignNew(HeightmapImage, SImage)
+             SNew(SBox)
+            .WidthOverride(1024.0f)
+            .HeightOverride(1024.0f)
+            [
+                SAssignNew(HeightmapImage, SImage)
+                .Image(HeightmapBrush.Get())
+            ]
         ]        
     ];
 }
@@ -42,6 +48,7 @@ void SResultsWidget::UpdateHeightmapTexture(UTexture2D* HeightmapTexture)
 {
     if (!HeightmapTexture)
     {
+        UE_LOG(LogTemp, Error, TEXT("HeightmapTexture is null."));
         return;
     }
 
@@ -56,5 +63,11 @@ void SResultsWidget::UpdateHeightmapTexture(UTexture2D* HeightmapTexture)
     if (HeightmapImage.IsValid())
     {
         HeightmapImage->SetImage(HeightmapBrush.Get());
+        UE_LOG(LogTemp, Log, TEXT("Heightmap image updated with dimensions: %dx%d"),
+            HeightmapTexture->GetSizeX(), HeightmapTexture->GetSizeY());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("HeightmapImage is not valid."));
     }
 }

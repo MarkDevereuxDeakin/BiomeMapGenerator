@@ -3,32 +3,31 @@
 
 bool CalculateDistanceToOcean(TArray<FHeightmapCell>& Data, int32 Width, int32 Height)
 {
-     if (Data.Num() != Width * Height)
+    if (Data.Num() != Width * Height)
     {
         UE_LOG(LogTemp, Error, TEXT("Invalid data dimensions for distance calculation."));
         return false;
     }
 
-    // Initialize distances and a queue for BFS
     TArray<float> DistanceMap;
     DistanceMap.Init(FLT_MAX, Data.Num());
 
     TQueue<int32> Queue;
 
-    // Enqueue all ocean pixels
+    // Enqueue all ocean cells
     for (int32 Index = 0; Index < Data.Num(); ++Index)
     {
-        if (Data[Index].OceanDepth > 0.0f) // Ocean pixel
+        if (Data[Index].OceanDepth > 0.0f) // Ocean cell
         {
             DistanceMap[Index] = 0.0f;
             Queue.Enqueue(Index);
         }
     }
 
-    // Neighbor offsets (4-directional)
+    // Neighbor offsets
     const TArray<FIntPoint> Offsets = { FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0) };
 
-    // Perform BFS
+    // BFS for distance calculation
     while (!Queue.IsEmpty())
     {
         int32 CurrentIndex;
@@ -56,11 +55,11 @@ bool CalculateDistanceToOcean(TArray<FHeightmapCell>& Data, int32 Width, int32 H
         }
     }
 
-    // Update the FHeightmapCell data
-    for (int32 Index = 0; Index < Data.Num(); ++Index)
+    // Assign distances back to HeightmapCell
+    ParallelFor(Data.Num(), [&](int32 Index)
     {
         Data[Index].DistanceToOcean = DistanceMap[Index];
-    }
+    });
 
     return true;
 }

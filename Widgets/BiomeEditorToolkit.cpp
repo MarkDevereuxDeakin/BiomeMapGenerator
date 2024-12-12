@@ -124,7 +124,7 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
             FString SelectedFile = OutFiles[0];
             this->HeightmapData.Empty();           
 
-            if (!HeightmapParser::ParseHeightmap(
+            if (!UHeightmapParser::ParseHeightmap(
                 SelectedFile,
                 SeaLevelSlider,
                 MinAltitudeSlider,
@@ -186,16 +186,20 @@ UTexture2D* BiomeEditorToolkit::CreateHeightmapTexture(const TArray<FHeightmapCe
         for (int32 x = 0; x < ScaledWidth; ++x)
         {
             // Map scaled coordinates back to original data
-            int32 OriginalX = FMath::RoundToInt(x / ScaleFactor);
-            int32 OriginalY = FMath::RoundToInt(y / ScaleFactor);
+            float OriginalX = x / ScaleFactor;
+            float OriginalY = y / ScaleFactor;
 
-            const FHeightmapCell& Cell = MapData[OriginalY * HeightmapWidth + OriginalX];
-            uint8 GrayValue = static_cast<uint8>(FMath::Clamp(Cell.Altitude * 255.0f, 0.0f, 255.0f));
+            int32 BaseX = FMath::Clamp(FMath::FloorToInt(OriginalX), 0, HeightmapWidth - 1);
+            int32 BaseY = FMath::Clamp(FMath::FloorToInt(OriginalY), 0, HeightmapHeight - 1);
+
+            // Bilinear interpolation between four nearest pixels
+            const FHeightmapCell& Cell = MapData[BaseY * HeightmapWidth + BaseX];
+            uint8 GrayValue = static_cast<uint8>(FMath::Clamp((Cell.Altitude - MinAltitudeSlider) / (MaxAltitudeSlider - MinAltitudeSlider) * 255.0f, 0.0f, 255.0f));
             TextureData.Add(FColor(GrayValue, GrayValue, GrayValue, 255));
         }
     }
 
-    UTexture2D* HeightmapTexture = UTexture2D::CreateTransient(ScaledWidth, ScaledHeight);
+     UTexture2D* HeightmapTexture = UTexture2D::CreateTransient(ScaledWidth, ScaledHeight);
     if (!HeightmapTexture)
     {
         return nullptr;
@@ -209,7 +213,6 @@ UTexture2D* BiomeEditorToolkit::CreateHeightmapTexture(const TArray<FHeightmapCe
         HeightmapTexture->GetPlatformData()->PixelFormat = PF_B8G8R8A8;
     }
 
-    // Fill texture memory
     FTexture2DMipMap& Mip = HeightmapTexture->GetPlatformData()->Mips[0];
     Mip.BulkData.Lock(LOCK_READ_WRITE);
     void* TextureMemory = Mip.BulkData.Realloc(ScaledWidth * ScaledHeight * sizeof(FColor));

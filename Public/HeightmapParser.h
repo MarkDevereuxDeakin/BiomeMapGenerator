@@ -1,30 +1,35 @@
+// HeightmapParser.h
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HeightmapCell.h"
+#include "HeightmapCell.h" // Assume this file defines FHeightmapCell
+#include "HeightmapParser.generated.h"
 
 /**
- * Utility class for parsing heightmaps into usable data.
+ * HeightmapParser handles parsing of various heightmap formats
+ * including PNG, JPG, R16, R32, and raw binary heightmaps.
  */
-class BIOMEMAPPER_API HeightmapParser
+UCLASS()
+class BIOMEMAPPER_API UHeightmapParser : public UObject
 {
+    GENERATED_BODY()
+
 public:
     /**
-     * Main function to parse a heightmap file.
+     * Parses a heightmap file into structured data.
      * @param FilePath - Path to the heightmap file.
-     * @param SeaLevel - Defined sea level for the heightmap.
-     * @param MinAltitude - Minimum altitude in the heightmap.
-     * @param MaxAltitude - Maximum altitude in the heightmap.
-     * @param MinLatitude - Minimum latitude of the region.
-     * @param MaxLatitude - Maximum latitude of the region.
-     * @param OutMinLongitude - Output minimum longitude estimate.
-     * @param OutMaxLongitude - Output maximum longitude estimate.
-     * @param OutData - Output array of parsed heightmap cells.
-     * @param Width - Width of the heightmap (in pixels).
-     * @param Height - Height of the heightmap (in pixels).
-     * @return True if parsing was successful.
+     * @param SeaLevel - Altitude defining sea level.
+     * @param MinAltitude - Minimum altitude for normalization.
+     * @param MaxAltitude - Maximum altitude for normalization.
+     * @param MinLatitude - Minimum latitude for the heightmap.
+     * @param MaxLatitude - Maximum latitude for the heightmap.
+     * @param OutMinLongitude - Calculated minimum longitude.
+     * @param OutMaxLongitude - Calculated maximum longitude.
+     * @param OutData - Parsed heightmap cell data.
+     * @param Width - Output width of the heightmap.
+     * @param Height - Output height of the heightmap.
+     * @return True if parsing is successful.
      */
-
     static bool ParseHeightmap(
         const FString& FilePath,
         float SeaLevel,
@@ -36,39 +41,64 @@ public:
         float& OutMaxLongitude,
         TArray<FHeightmapCell>& OutData,
         int32& Width,
-        int32& Height);
+        int32& Height
+    );
 
 private:
-    /**
-     * Estimate the longitude range for a heightmap.
-     * @param MinLatitude - Minimum latitude.
-     * @param MaxLatitude - Maximum latitude.
-     * @param Width - Width of the heightmap (pixels).
-     * @param Height - Height of the heightmap (pixels).
-     * @param OutMinLongitude - Output minimum longitude estimate.
-     * @param OutMaxLongitude - Output maximum longitude estimate.
-     */
+    // Helper functions
 
+    /**
+     * Loads heightmap data from a file.
+     * @return True if loading is successful.
+     */
+    static bool LoadHeightmap(const FString& FilePath,
+    TArray<float>& OutHeightmapData,
+    int32& OutWidth,
+    int32& OutHeight,
+    int32& BitDepth);
+
+    /**
+     * Parses image-based heightmaps (PNG, JPG).
+     */
+    static bool ParseImageHeightmap(const FString& FilePath,
+    TArray<float>& OutHeightmapData,
+    int32& OutWidth,
+    int32& OutHeight,
+    int32& BitDepth);
+
+    /**
+     * Parses raw binary heightmaps (R16, R32).
+     */
+    static bool ParseRawHeightmap(const FString& FilePath,
+    TArray<float>& OutHeightmapData,
+    int32& Width,
+    int32& Height,
+    int32 BitDepth);
+
+    /**
+     * Calculates longitude range for the heightmap.
+     */
     static void EstimateLongitudeRange(
         float MinLatitude,
         float MaxLatitude,
         int32 Width,
         int32 Height,
         float& OutMinLongitude,
-        float& OutMaxLongitude);
+        float& OutMaxLongitude
+    );
+    
+    /**
+     * Checks if the raw data is big-endian.
+     */
+    static bool IsBigEndian(const TArray<uint8>& Data, int32 BitDepth);
 
-    static bool LoadHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight);
+    /**
+     * Converts 16-bit raw data from big-endian to little-endian.
+     */
+    static void ConvertToLittleEndian(TArray<uint8>& Data);
 
-    /** Parsing methods for specific formats */
-    static bool ParseRawHeightmap(TArray<uint8>& RawData, int32& Width, int32& Height);
-    static bool ParseR16Heightmap(TArray<uint8>& RawData, int32& Width, int32& Height);
-    static bool ParseR32Heightmap(TArray<uint8>& RawData, int32& Width, int32& Height);
-    static bool ParseImageHeightmap(const FString& FilePath, TArray<uint8>& OutHeightmapData, int32& OutWidth, int32& OutHeight);
-
-    /** Determines if the data is in big-endian format. */
-    static bool IsBigEndian(const TArray<uint8>& RawData, int32 BitDepth);
-
-    /** Converts raw data to little-endian format. */
-    static void ConvertToLittleEndian(TArray<uint8>& RawData);
-    static void ConvertToLittleEndian32(TArray<uint8>& RawData);
+    /**
+     * Converts 32-bit raw data from big-endian to little-endian.
+     */
+    static void ConvertToLittleEndian32(TArray<uint8>& Data);
 };
