@@ -86,7 +86,7 @@ private:
         float& OutMinLongitude,
         float& OutMaxLongitude
     );
-    
+
     /**
      * Checks if the raw data is big-endian.
      */
@@ -101,4 +101,8 @@ private:
      * Converts 32-bit raw data from big-endian to little-endian.
      */
     static void ConvertToLittleEndian32(TArray<uint8>& Data);
+
+    static bool DetermineDimensionsFromFile(int64 FileSize, int32 BitDepth, int32& OutWidth, int32& OutHeight);
+    static bool ReadMetadataFromFile(const FString& MetadataFilePath, int32& OutWidth, int32& OutHeight, int32& OutBitDepth);
+    static bool GuessDimensions(int64 FileSize, int32 BitDepth, int32& OutWidth, int32& OutHeight);
 };

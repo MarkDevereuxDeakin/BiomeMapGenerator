@@ -33,6 +33,12 @@ bool UHeightmapParser::ParseHeightmap(
         return false;
     }
 
+    if (Width * Height != RawData.Num())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Mismatch between heightmap dimensions and data size. Width: %d, Height: %d, RawData size: %d"), Width, Height, RawData.Num());
+        return false;
+    }
+
     EstimateLongitudeRange(MinLatitude, MaxLatitude, Width, Height, OutMinLongitude, OutMaxLongitude);
 
     OutData.Empty(Width * Height);
@@ -41,7 +47,14 @@ bool UHeightmapParser::ParseHeightmap(
         for (int32 x = 0; x < Width; ++x)
         {
             int32 Index = y * Width + x;
-            uint8 PixelValue = RawData[Index];
+
+             if (Index >= RawData.Num())
+            {
+                UE_LOG(LogTemp, Error, TEXT("Index out of bounds: %d, RawData size: %d"), Index, RawData.Num());
+                return false;
+            }
+
+            uint8 PixelValue = static_cast<uint8>(FMath::Clamp(RawData[Index] * 255.0f, 0.0f, 255.0f));
 
             FHeightmapCell Cell;
             Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(Height));
@@ -129,8 +142,29 @@ bool UHeightmapParser::ParseImageHeightmap(
     OutWidth = ImageWrapper->GetWidth();
     OutHeight = ImageWrapper->GetHeight();
     BitDepth = ImageWrapper->GetBitDepth();
+    if (BitDepth == 32)
+    {
+        TArray<uint8> RawByteData;
+        if (!ImageWrapper->GetRaw(ERGBFormat::Gray, 32, RawByteData))
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to decompress 32-bit image: %s"), *FilePath);
+            return false;
+        }
 
-    if (BitDepth == 16)
+        // Convert raw byte data directly to normalized floating-point values
+        int32 NumPixels = RawByteData.Num() / 4; // Each pixel is 4 bytes
+        OutHeightmapData.Reserve(NumPixels);
+
+        for (int32 i = 0; i < RawByteData.Num(); i += 4)
+        {
+            uint32 Value = (RawByteData[i + 3] << 24) | (RawByteData[i + 2] << 16) |
+                        (RawByteData[i + 1] << 8) | RawByteData[i]; // Combine bytes into a 32-bit integer
+
+            // Normalize to [0.0, 1.0] using the maximum possible value for 32-bit data
+            OutHeightmapData.Add(static_cast<float>(Value) / 4294967295.0f);
+        }
+    }
+    else if (BitDepth == 16)
     {
         TArray<uint8> RawByteData;
         if (!ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawByteData))
@@ -176,45 +210,76 @@ bool UHeightmapParser::ParseImageHeightmap(
 bool UHeightmapParser::ParseRawHeightmap(
     const FString& FilePath,
     TArray<float>& OutHeightmapData,
-    int32& Width,
-    int32& Height,
+    int32& OutWidth,
+    int32& OutHeight,
     int32 BitDepth)
 {
     TArray<uint8> RawData;
-    if (!FFileHelper::LoadFileToArray(RawData, *FilePath))
+   if (!FFileHelper::LoadFileToArray(RawData, *FilePath))
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to load raw heightmap file: %s"), *FilePath);
         return false;
     }
 
-    int32 BytesPerPixel = BitDepth / 8;
-    int32 NumSamples = RawData.Num() / BytesPerPixel;
-
-    Width = FMath::Sqrt(static_cast<float>(NumSamples));
-    Height = NumSamples / Width;
-
-    if (Width * Height != NumSamples)
+    if (IsBigEndian(RawData, BitDepth))
     {
-        UE_LOG(LogTemp, Error, TEXT("Raw heightmap data is not a perfect rectangle."));
-        return false;
+        if (BitDepth == 16)
+        {
+            ConvertToLittleEndian(RawData);
+        }
+        else if (BitDepth == 32)
+        {
+            ConvertToLittleEndian32(RawData);
+        }
     }
+
+    int64 FileSize = RawData.Num();
+
+    // Step 1: Attempt to read metadata
+    FString MetadataFilePath = FPaths::ChangeExtension(FilePath, TEXT("hdr"));
+    if (FPaths::FileExists(MetadataFilePath))
+    {
+        if (ReadMetadataFromFile(MetadataFilePath, OutWidth, OutHeight, BitDepth))
+        {
+            UE_LOG(LogTemp, Log, TEXT("Metadata file used to determine dimensions: %dx%d"), OutWidth, OutHeight);
+        }
+    }
+
+    // Step 2: Infer dimensions from file size if metadata is not available
+    if (OutWidth == 0 || OutHeight == 0)
+    {
+        if (!DetermineDimensionsFromFile(FileSize, BitDepth, OutWidth, OutHeight))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Determining dimensions failed, attempting to guess dimensions."));
+
+            // Step 3: Guess dimensions as a fallback
+            if (!GuessDimensions(FileSize, BitDepth, OutWidth, OutHeight))
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to determine dimensions for file: %s"), *FilePath);
+                return false;
+            }
+        }
+    }
+
+    // Step 4: Parse the raw data into floating-point values
+    int32 BytesPerPixel = BitDepth / 8;
+    int32 NumSamples = FileSize / BytesPerPixel;
+    OutHeightmapData.Reserve(NumSamples);
 
     if (BitDepth == 16)
     {
-        OutHeightmapData.Reserve(NumSamples);
         for (int32 i = 0; i < RawData.Num(); i += 2)
         {
             uint16 Value = (RawData[i + 1] << 8) | RawData[i];
-            OutHeightmapData.Add(Value / 65535.0f); // Normalize 16-bit to [0.0, 1.0]
+            OutHeightmapData.Add(Value / 65535.0f); // Normalize to [0.0, 1.0]
         }
     }
     else if (BitDepth == 32)
     {
-        OutHeightmapData.Reserve(NumSamples);
         for (int32 i = 0; i < RawData.Num(); i += 4)
         {
             uint32 Value = (RawData[i + 3] << 24) | (RawData[i + 2] << 16) | (RawData[i + 1] << 8) | RawData[i];
-            OutHeightmapData.Add(*reinterpret_cast<float*>(&Value)); // Store as-is
+            OutHeightmapData.Add(*reinterpret_cast<float*>(&Value));
         }
     }
     else
@@ -225,7 +290,6 @@ bool UHeightmapParser::ParseRawHeightmap(
 
     return true;
 }
-
 
 void UHeightmapParser::EstimateLongitudeRange(
     float MinLatitude,
@@ -279,4 +343,79 @@ void UHeightmapParser::ConvertToLittleEndian32(TArray<uint8>& Data)
         Data[Index * 4 + 2] = Temp2;
         Data[Index * 4 + 3] = Temp1;
     });
+}
+
+bool UHeightmapParser::DetermineDimensionsFromFile(int64 FileSize, int32 BitDepth, int32& OutWidth, int32& OutHeight)
+{
+    int32 BytesPerPixel = BitDepth / 8;
+    int32 NumSamples = FileSize / BytesPerPixel;
+
+    // Try square dimensions first
+    OutWidth = FMath::Sqrt(static_cast<float>(NumSamples));
+    OutHeight = NumSamples / OutWidth;
+
+    if (OutWidth * OutHeight == NumSamples)
+    {
+        return true; // Dimensions successfully determined
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Failed to determine dimensions. File size: %lld bytes, Bit depth: %d, Samples: %d"),
+           FileSize, BitDepth, NumSamples);
+
+    return false;
+}
+
+
+bool UHeightmapParser::ReadMetadataFromFile(const FString& MetadataFilePath, int32& OutWidth, int32& OutHeight, int32& OutBitDepth)
+{
+    FString MetadataContent;
+    if (FFileHelper::LoadFileToString(MetadataContent, *MetadataFilePath))
+    {
+        FRegexPattern WidthPattern(TEXT("Width:\\s*(\\d+)"));
+        FRegexPattern HeightPattern(TEXT("Height:\\s*(\\d+)"));
+        FRegexPattern BitDepthPattern(TEXT("BitDepth:\\s*(\\d+)"));
+
+        FRegexMatcher WidthMatcher(WidthPattern, MetadataContent);
+        FRegexMatcher HeightMatcher(HeightPattern, MetadataContent);
+        FRegexMatcher BitDepthMatcher(BitDepthPattern, MetadataContent);
+
+        if (WidthMatcher.FindNext())
+        {
+            OutWidth = FCString::Atoi(*WidthMatcher.GetCaptureGroup(1));
+        }
+        if (HeightMatcher.FindNext())
+        {
+            OutHeight = FCString::Atoi(*HeightMatcher.GetCaptureGroup(1));
+        }
+        if (BitDepthMatcher.FindNext())
+        {
+            OutBitDepth = FCString::Atoi(*BitDepthMatcher.GetCaptureGroup(1));
+        }
+
+        return true;
+    }
+
+    UE_LOG(LogTemp, Error, TEXT("Failed to read metadata file: %s"), *MetadataFilePath);
+    return false;
+}
+
+bool UHeightmapParser::GuessDimensions(int64 FileSize, int32 BitDepth, int32& OutWidth, int32& OutHeight)
+{
+    int32 BytesPerPixel = BitDepth / 8;
+    int32 NumSamples = FileSize / BytesPerPixel;
+
+    TArray<int32> CommonWidths = {256, 512, 1024, 2048, 4096, 8192};
+    for (int32 Width : CommonWidths)
+    {
+        int32 Height = NumSamples / Width;
+        if (Width * Height == NumSamples)
+        {
+            OutWidth = Width;
+            OutHeight = Height;
+            return true; // Valid dimensions found
+        }
+    }
+
+    UE_LOG(LogTemp, Error, TEXT("Unable to guess dimensions for file size: %lld bytes, Bit depth: %d"), FileSize, BitDepth);
+    return false;
 }
