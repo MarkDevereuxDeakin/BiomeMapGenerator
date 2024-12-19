@@ -16,8 +16,7 @@ public:
      * @return The type of ocean current ("warm" or "cold").
      */
     static FString DetermineOceanCurrentType(float Latitude, float Longitude, FString FlowDirection);
-
-private:
+    
     /**
      * Validate input parameters for current determination.
      * @param Latitude - Geographic latitude.
@@ -26,4 +25,7 @@ private:
      * @return Corrected or validated flow direction.
      */
     static FString ValidateFlowDirection(float Latitude, float Longitude, FString FlowDirection);
+
+    
+
 };

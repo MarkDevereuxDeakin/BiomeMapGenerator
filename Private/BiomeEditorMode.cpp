@@ -36,9 +36,13 @@ void FBiomeEditorMode::Enter()
     }
 
     // Create the Toolkit Widget if not already created
-    if (!ToolkitWidget.IsValid())
+   if (!ToolkitWidget.IsValid())
     {
         ToolkitWidget = SNew(BiomeEditorToolkit);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ToolkitWidget is already valid."));
     }
 
     // Register the tab if it hasn't been registered

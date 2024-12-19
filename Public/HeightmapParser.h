@@ -25,9 +25,10 @@ public:
      * @param MaxLatitude - Maximum latitude for the heightmap.
      * @param OutMinLongitude - Calculated minimum longitude.
      * @param OutMaxLongitude - Calculated maximum longitude.
-     * @param OutData - Parsed heightmap cell data.
-     * @param Width - Output width of the heightmap.
-     * @param Height - Output height of the heightmap.
+     * @param OutHeightmapData - Parsed heightmap cell data.
+     * @param OutWidth - Output width of the heightmap.
+     * @param OutHeight - Output height of the heightmap.
+     * @param OutResolution - The resolution of the heightmap.
      * @return True if parsing is successful.
      */
     static bool ParseHeightmap(
@@ -39,9 +40,10 @@ public:
         float MaxLatitude,
         float& OutMinLongitude,
         float& OutMaxLongitude,
-        TArray<FHeightmapCell>& OutData,
-        int32& Width,
-        int32& Height
+        TArray<FHeightmapCell>& OutHeightmapData,
+        int32& OutWidth,
+        int32& OutHeight,
+        FVector2D& OutResolution
     );
 
 private:
@@ -52,7 +54,7 @@ private:
      * @return True if loading is successful.
      */
     static bool LoadHeightmap(const FString& FilePath,
-    TArray<float>& OutHeightmapData,
+    TArray<float>& OutRawData,
     int32& OutWidth,
     int32& OutHeight,
     int32& BitDepth);
@@ -61,7 +63,7 @@ private:
      * Parses image-based heightmaps (PNG, JPG).
      */
     static bool ParseImageHeightmap(const FString& FilePath,
-    TArray<float>& OutHeightmapData,
+    TArray<float>& OutRawData,
     int32& OutWidth,
     int32& OutHeight,
     int32& BitDepth);

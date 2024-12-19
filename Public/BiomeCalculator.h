@@ -17,32 +17,22 @@ class BIOMEMAPPER_API UBiomeCalculator : public UObject
 public:
     /**
      * Calculate the biome for specific coordinates.
-     * @param Latitude - Geographic latitude.
-     * @param Longitude - Geographic longitude.
-     * @param Altitude - Altitude of the location.
-     * @param DistanceToOcean - Distance to the nearest ocean.
-     * @param FlowDirection - Ocean or wind flow direction.
+     * @param Cell - The Heightmap Cell
      * @param PlanetTime - The planetary time information.
      * @return The calculated biome as a string.
      */
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
-    FString CalculateBiome(
-        float Latitude, 
-        float Longitude, 
-        float Altitude, 
-        float DistanceToOcean, 
-        FString FlowDirection,
-        const FPlanetTime& PlanetTime);
+    FString CalculateBiome(const FHeightmapCell& Cell);
 
     /**
      * Calculate biomes for an entire heightmap input.
-     * @param MinLatitudeSlider - Minimum latitude (Slider).
-     * @param MaxLatitudeSlider - Maximum latitude (Slider).
-     * @param OutMinLongitude - Calculated minimum longitude (float).
-     * @param OutMaxLongitude - Calculated maximum longitude (float).
-     * @param MinAltitudeStr - Minimum altitude (string format).
-     * @param MaxAltitudeStr - Maximum altitude (string format).
-     * @param SeaLevelStr - Sea level (string format).
+     * @param MinLatitude - Minimum latitude (Slider).
+     * @param MaxLatitude - Maximum latitude (Slider).
+     * @param MinLongitude - Calculated minimum longitude (float).
+     * @param MaxLongitude - Calculated maximum longitude (float).
+     * @param MinAltitude - Minimum altitude (string format).
+     * @param MaxAltitude - Maximum altitude (string format).
+     * @param SeaLevel - Sea level (string format).
      * @param HeightmapData - The heightmap data array.
      * @param PlanetTime - The planetary time information.
      * @return The calculated biome data as a string.
@@ -52,19 +42,19 @@ public:
     FString CalculateBiomeFromInput(
         float MinLatitude, // Use value from slider
         float MaxLatitude, // Use value from slider
-        float OutMinLongitude, // Use calculated Min Longitude
-        float OutMaxLongitude, // Use calculated Max Longitude
-        float MinAltitudeStr, // Use value from slider
-        float MaxAltitudeStr, // Use value from slider
-        float SeaLevelStr, // Use value from slider
-        const TArray<FHeightmapCell>& HeightmapData,
-        const FPlanetTime& PlanetTime);
+        float MinLongitude, // Use calculated Min Longitude
+        float MaxLongitude, // Use calculated Max Longitude
+        float MinAltitude, // Use value from slider
+        float MaxAltitude, // Use value from slider
+        float SeaLevel, // Use value from slider
+        const TArray<FHeightmapCell>& HeightmapData);
 
     /**
      * Filter biome candidates based on environmental parameters.
-     * @param AdjustedTemperature - Temperature after adjustments.
-     * @param Precipitation - Total precipitation.
+     * @param Temperature - Temperature after adjustments.
+     * @param AnnualPrecipitation - Total precipitation.
      * @return Array of biome candidates.
      */
-    TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation);
+    UFUNCTION(BlueprintCallable, category = "Biome Calculator")
+    TArray<FString> FilterBiomeCandidates(float Temperature, float AnnualPrecipitation);
 };

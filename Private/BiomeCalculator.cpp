@@ -1,6 +1,6 @@
 #include "BiomeCalculator.h"
-#include "PlanetTime.h"
 #include "Humidity.h"
+#include "Async/ParallelFor.h"
 #include "WindUtils.h"
 #include "OceanTemperature.h"
 #include "Temperature.h"
@@ -11,81 +11,32 @@
 // Helper function to classify biome
 //static TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);
 int counter = 100;
-FString UBiomeCalculator::CalculateBiome(
-    float Latitude, float Longitude, float Altitude, float DistanceToOcean, FString FlowDirection, const FPlanetTime& PlanetTime)
+FString UBiomeCalculator::CalculateBiome(const FHeightmapCell& Cell)
 {
-     // Get day of year from planetary time
-    int32 DayOfYear = PlanetTime.GetDayOfYear();       
-
-    // Calculate wind direction based on latitude, longitude, day of the year and time of day.
-    FVector2D WindDirection = UnifiedWindCalculator::CalculateRefinedWind(
-        Latitude, 
-        Longitude, 
-        PlanetTime.GetTimeOfDay() / PlanetTime.GetDayLengthSeconds());
-
-    // Calculate magnitude of wind
-    float WindStrength = WindDirection.Size();
-
-    // Define the ocean-to-land vector (example assumes ocean westward)
-    FVector2D OceanToLandVector = FVector2D(1.0f, 0.0f);
-
-    //Determine if the wind is onshore
-    bool IsOnshore = WindUtils::IsOnshoreWind(WindDirection, OceanToLandVector);
-
-    // Calculate relative humidity
-    float RelativeHumidity = Humidity::CalculateRelativeHumidity(Latitude, DistanceToOcean, IsOnshore);
-
-    // Calculate precipitation
-    float Precipitation = Precipitation::CalculatePrecipitation(Latitude, Altitude, DistanceToOcean, RelativeHumidity);
-
-    // Calculate base temperature
-    float BaseTemperature = Temperature::CalculateSurfaceTemperature(Latitude, Altitude, PlanetTime.GetDayOfYear(), RelativeHumidity, PlanetTime); 
-    
-    // Adjust temperature based on ocean effects
-    float AdjustedTemperature = OceanTemperature::CalculateOceanTemp(BaseTemperature, DistanceToOcean, Latitude, Longitude, FlowDirection);
-    float OceanTempEffect = AdjustedTemperature / (DistanceToOcean + 1);
-
-    //float OceanTempEffect = AdjustedTemperature * FMath::Exp(-DistanceToOcean / 100.0f); Alternative OCeanTempEffect, with diminitioning effect as distance increases
-
-     WindUtils::AdjustWeatherFactors(IsOnshore, WindStrength, Precipitation, AdjustedTemperature, DistanceToOcean);
-
     // Filter Biomes based on adjusted values
-    TArray<FString> Candidates = FilterBiomeCandidates(AdjustedTemperature, Precipitation);
+    TArray<FString> Candidates = FilterBiomeCandidates(Cell.Temperature, Cell.AnnualPrecipitation);
 
     // Calculate biome probabilities - Remove or comment this out once debugging is complete
     if (Candidates.Num() > 0 && Candidates[0] != "Unknown Biome")
     {
-        return CalculateBiomeProbabilities(AdjustedTemperature, Precipitation, Candidates);
+        return CalculateBiomeProbabilities(Cell.Temperature, Cell.AnnualPrecipitation, Candidates);
     }
     
     return "Unknown Biome";
 
-    // Calculate biome probabilities
-    //return CalculateBiomeProbabilities(AdjustedTemperature, Precipitation, OceanTempEffect, Candidates);
-
 }
 
 FString UBiomeCalculator::CalculateBiomeFromInput(
-    float MinLatitudeSlider, // Use value from slider
-    float MaxLatitudeSlider, // Use value from slider 
-    float OutMinLongitude, // Use calculated Min Longitude
-    float OutMaxLongitude, // Use calculated Max Longitude 
-    float MinAltitudeSlider, // Use value from slider 
-    float MaxAltitudeSlider,  // Use value from slider
-    float SeaLevelSlider, // Use value from slider
-    const TArray<FHeightmapCell>& HeightmapData,
-    const FPlanetTime& PlanetTime)
+    float MinLatitude, // Use value from slider
+    float MaxLatitude, // Use value from slider 
+    float MinLongitude, // Use calculated Min Longitude
+    float MaxLongitude, // Use calculated Max Longitude 
+    float MinAltitude, // Use value from slider 
+    float MaxAltitude,  // Use value from slider
+    float SeaLevel, // Use value from slider
+    const TArray<FHeightmapCell>& HeightmapData)
 {
-    // Convert string inputs to floats
-    float MinLatitude = MinLatitudeSlider;
-    float MaxLatitude = MaxLatitudeSlider;
-    float MinLongitude = OutMinLongitude; // Use calculated Min Longitude
-    float MaxLongitude = OutMaxLongitude; // Use calculated Max Longitude
-    float MinAltitude = MinAltitudeSlider; // Use value from slider
-    float MaxAltitude = MaxAltitudeSlider; // Use value from slider
-    float SeaLevel = SeaLevelSlider; // Use value from slider
-
-
+    
     // Check for invalid input ranges
     if (MinLatitude > MaxLatitude || MinLongitude > MaxLongitude || MinAltitude > MaxAltitude)
     {
@@ -99,17 +50,12 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     {
         const FHeightmapCell& Cell = HeightmapData[Index];
 
-        if (Cell.Latitude >= MinLatitude && Cell.Latitude <= MaxLatitude &&
+        if (Cell.CellType == ECellType::Land &&
+            Cell.Latitude >= MinLatitude && Cell.Latitude <= MaxLatitude &&
             Cell.Longitude >= MinLongitude && Cell.Longitude <= MaxLongitude &&
             Cell.Altitude >= MinAltitude && Cell.Altitude <= MaxAltitude)
         {
-            FString Biome = CalculateBiome(
-                Cell.Latitude, 
-                Cell.Longitude, 
-                Cell.Altitude, 
-                Cell.DistanceToOcean, 
-                "",
-                PlanetTime);
+            FString Biome = CalculateBiome(Cell);
 
             if(!Biome.IsEmpty())
             {

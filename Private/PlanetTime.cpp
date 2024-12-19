@@ -1,74 +1,89 @@
 #include "PlanetTime.h"
 
-FPlanetTime::FPlanetTime(float InDayLengthHours, float InYearLengthDays, int32 InMonthsPerYear)
-    : DayLengthSeconds(InDayLengthHours * 3600.0f), // Converts Hours to seconds
-      YearLengthDays(InYearLengthDays),
-      MonthsPerYear(InMonthsPerYear),
-      CurrentTimeSeconds(0.0f),
-      YearCount(0)
+// Static Instance Initialization
+FPlanetTime* FPlanetTime::Instance = nullptr;
+
+// Private Constructors
+FPlanetTime::FPlanetTime()
+    : YearLength(365.0f), DayLengthHours(24.0f), DayLengthMinutes(0.0f), DayLengthSeconds(86400.0f), DayOfYear(1), TimeOfDay(0.0f)
 {
-    // Validate inputs
-    ensure(this->DayLengthSeconds > 0.0f);
-    ensure(this->YearLengthDays > 0.0f);
-    ensure(this->MonthsPerYear > 0);
 }
 
-void FPlanetTime::AdvanceTime(float DeltaSeconds)
+FPlanetTime::FPlanetTime(float YearLengthDays, float DayLengthHours, float DayLengthMinutes, int32 DayOfYear, float TimeOfDay)
+    : YearLength(YearLengthDays),
+      DayLengthHours(DayLengthHours),
+      DayLengthMinutes(DayLengthMinutes),
+      DayLengthSeconds((DayLengthHours * 3600.0f) + (DayLengthMinutes * 60.0f)),
+      DayOfYear(DayOfYear),
+      TimeOfDay(TimeOfDay)
 {
-    this->CurrentTimeSeconds += DeltaSeconds;
+}
 
-    // Check if a year has completed
-    float YearLengthInSeconds = this->YearLengthDays * this->DayLengthSeconds;
-    if (this->CurrentTimeSeconds >= YearLengthInSeconds)
+// Singleton Access
+FPlanetTime& FPlanetTime::GetInstance()
+{
+    ensure(Instance != nullptr); // Ensure it is initialized before use
+    return *Instance;
+}
+
+// Initialize Singleton
+void FPlanetTime::Initialize(float YearLengthDays, float DayLengthHours, float DayLengthMinutes, int32 DayOfYear, float TimeOfDay)
+{
+    if (Instance == nullptr)
     {
-        this->CurrentTimeSeconds -= YearLengthInSeconds;
-        this->YearCount++;
+        Instance = new FPlanetTime(YearLengthDays, DayLengthHours, DayLengthMinutes, DayOfYear, TimeOfDay);
     }
 }
+// Getters
+float FPlanetTime::GetYearLength() const { return YearLength; }
+float FPlanetTime::GetDayLengthHours() const { return DayLengthHours; }
+float FPlanetTime::GetDayLengthMinutes() const { return DayLengthMinutes; }
+float FPlanetTime::GetDayLengthSeconds() const { return DayLengthSeconds; }
+int32 FPlanetTime::GetDayOfYear() const { return DayOfYear; }
+float FPlanetTime::GetTimeOfDay() const { return TimeOfDay; }
 
-int32 FPlanetTime::GetYear() const
-{
-    return this->YearCount + 1; // 1-based year
+// Setters
+void FPlanetTime::SetYearLength(float NewYearLengthDays)
+{ 
+    YearLength = NewYearLengthDays + 1;
 }
 
-int32 FPlanetTime::GetDayOfYear() const
+void FPlanetTime::SetDayLengthHours(float NewDayLengthHours)
 {
-    return FMath::FloorToInt(this->CurrentTimeSeconds / this->DayLengthSeconds) + 1; // 1-based day of year
+    this->DayLengthHours = NewDayLengthHours;
+    DayLengthSeconds = (NewDayLengthHours * 3600.0f) + (DayLengthMinutes * 60.0f);
+}
+void FPlanetTime::SetDayLengthMinutes(float NewDayLengthMinutes)
+{
+    this->DayLengthMinutes = NewDayLengthMinutes;
+    DayLengthSeconds = (DayLengthHours * 3600.0f) + (NewDayLengthMinutes * 60.0f);
+}
+void FPlanetTime::SetDayOfYear(int32 NewDayOfYear)
+{ 
+    this->DayOfYear = NewDayOfYear; 
+}
+void FPlanetTime::SetTimeOfDay(float NewTimeOfDay)
+{ 
+    this->TimeOfDay = FMath::Clamp(NewTimeOfDay, 0.0f, 1.0f); 
 }
 
-float FPlanetTime::GetTimeOfDay() const
+// Determine Season
+FString FPlanetTime::GetSeason(float TimeOfYear) const
 {
-    return FMath::Fmod(this->CurrentTimeSeconds, this->DayLengthSeconds); // Time within the current day
-}
-
-float FPlanetTime::GetDayLengthSeconds() const
-{
-    return this->DayLengthSeconds;
-}
-
-void FPlanetTime::GetMonthAndDay(int32& OutMonth, int32& OutDay) const
-{
-    int32 TotalDay = this->GetDayOfYear(); // 1-based day of year
-    int32 DaysPerMonth = this->GetDaysPerMonth();
-
-    OutMonth = (TotalDay - 1) / DaysPerMonth + 1; // 1-based month
-    OutDay = (TotalDay - 1) % DaysPerMonth + 1;   // 1-based day within the month
-}
-
-FString FPlanetTime::GetFormattedTime() const
-{
-    int32 CurrentYear = this->GetYear();
-    int32 CurrentDay = this->GetDayOfYear();
-    float TimeOfDay = this->GetTimeOfDay();
-
-    int32 CurrentMonth, DayOfMonth;
-    this->GetMonthAndDay(CurrentMonth, DayOfMonth);
-
-    return FString::Printf(TEXT("Year: %d, Month: %d, Day: %d, Time: %.2f hours"),
-                           CurrentYear, CurrentMonth, DayOfMonth, TimeOfDay / 3600.0f);
-}
-
-int32 FPlanetTime::GetDaysPerMonth() const
-{
-    return FMath::CeilToInt(this->YearLengthDays / this->MonthsPerYear);
+    if (TimeOfYear < 0.25f)
+    {
+        return TEXT("Spring");
+    }
+    else if (TimeOfYear < 0.50f)
+    {
+        return TEXT("Summer");
+    }
+    else if (TimeOfYear < 0.75f)
+    {
+        return TEXT("Autumn");
+    }
+    else
+    {
+        return TEXT("Winter");
+    }
 }

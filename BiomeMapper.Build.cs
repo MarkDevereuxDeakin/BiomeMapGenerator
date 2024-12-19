@@ -46,7 +46,8 @@ public class BiomeMapper : ModuleRules
             "EditorFramework", // For FEditorModeInfo
             "EditorStyle",   // Optional: For editor-specific styling
             "Projects",      // For working with projects in the editor
-            "ToolMenus"      // For adding custom menus in the editor
+            "ToolMenus",      // For adding custom menus in the editor
+            "ImageWrapper"
         });		
 		
 		DynamicallyLoadedModuleNames.AddRange(

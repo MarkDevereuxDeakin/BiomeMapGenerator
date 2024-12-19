@@ -2,6 +2,13 @@
 
 #include "HeightmapCell.h"
 
+bool FindClosestOceanCell(
+    const TArray<FHeightmapCell>& Data,
+    int32 Width,
+    int32 Height,
+    TArray<float>& OutDistanceMap,
+    TArray<int32>& OutClosestOceanIndex);
+
 /**
  * Calculate the distance of each cell to the nearest ocean.
  * @param Data - Array of heightmap cells.

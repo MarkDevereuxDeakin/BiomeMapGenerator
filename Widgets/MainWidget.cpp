@@ -8,6 +8,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
 {
     DayLengthHours = InArgs._InitialDayLengthHours;
     YearLengthDays = InArgs._InitialYearLengthDays;
+    DayOfYear = InArgs._InitialDayOfYear;
     OnParametersChanged = InArgs._OnParametersChanged;
     
     ChildSlot
@@ -68,6 +69,33 @@ void SMainWidget::Construct(const FArguments& InArgs)
             ]
         ]
 
+        // Current Day Input
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(10)
+        [
+            SNew(SHorizontalBox)
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(10, 0)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString("Current Day of the Year:"))
+                .Justification(ETextJustify::Left)
+            ]
+
+            + SHorizontalBox::Slot()
+            .FillWidth(1.0f)
+            .Padding(10, 0)
+            [
+                SNew(SEditableTextBox)
+                .Text(FText::AsNumber(DayOfYear))
+                .Justification(ETextJustify::Right)
+                .OnTextCommitted(this, &SMainWidget::OnDayOfYearChanged)
+            ]
+        ]
+
         
     ];
 }
@@ -98,4 +126,33 @@ void SMainWidget::OnYearLengthChanged(const FText& NewText, ETextCommit::Type Co
             OnParametersChanged.Execute();
         }
     }
+}
+
+void SMainWidget::OnDayOfYearChanged(const FText& NewText, ETextCommit::Type CommitType)
+{
+    if (NewText.IsNumeric())
+    {
+        DayOfYear = FCString::Atof(*NewText.ToString());
+
+        // Trigger callback
+        if (OnParametersChanged.IsBound())
+        {
+            OnParametersChanged.Execute();
+        }
+    }
+}
+
+float SMainWidget::GetDayLengthHours() const
+{
+    return DayLengthHours;
+}
+
+float SMainWidget::GetYearLengthDays() const
+{
+    return YearLengthDays;
+}
+
+float SMainWidget::GetDayOfYear() const
+{
+    return DayOfYear;
 }

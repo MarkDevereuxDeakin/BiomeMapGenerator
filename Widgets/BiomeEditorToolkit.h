@@ -1,4 +1,3 @@
-// BiomeEditorToolkit.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -29,9 +28,10 @@ private:
     // Biome calculator instance
     UBiomeCalculator* BiomeCalculatorInstance;
 
-    // Heightmap Dimenstions
+    // Heightmap Dimensions
     int32 Width = 0;
     int32 Height = 0;
+    FVector2D Resolution;
 
     // Results Widget for displaying results
     TSharedPtr<SResultsWidget> ResultsWidget;
@@ -45,9 +45,17 @@ private:
     void OnUploadButtonClicked();
     void OnAnalyzeHydrologyClicked();
     void OnCalculateBiomeClicked();
+    float GetTimeOfYear();
 
-    // Heightmap texture creation method
+    // Texture creation methods
     UTexture2D* CreateHeightmapTexture(const TArray<FHeightmapCell>& MapData, int32 HeightmapWidth, int32 HeightmapHeight);
+    UTexture2D* CreateHydrologyTexture(const TArray<FColor>& TextureData, int32 Width, int32 Height);
+
+    // Save hydrology image
+    bool SaveHydrologyImage(const TArray<FColor>& TextureData, int32 Width, int32 Height);
+
+    // Callback for hydrology calculation
+    void OnHydrologyCalculationComplete(const TArray<FVector>& HydrologyData, int32 Width, int32 Height);
 
     // Helper variables for storing slider values
     float MinLatitudeSlider = -90.0f;

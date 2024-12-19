@@ -17,6 +17,10 @@
 #include "DesktopPlatformModule.h"
 #include "HeightmapParser.h"
 #include "Engine/Texture2D.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/FileHelper.h"
 
 void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 {
@@ -25,7 +29,7 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
     ChildSlot
     [
         SNew(SBorder)
-        .Padding(10) // Uniform padding around the entire layout
+        .Padding(10)
         [
             SNew(SHorizontalBox)
 
@@ -48,20 +52,19 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
             [
                 SNew(SVerticalBox)
 
-                // MainWidget
                 + SVerticalBox::Slot()
                 .AutoHeight()
-                .HAlign(HAlign_Center)                
+                .HAlign(HAlign_Center)
                 [
                     SNew(SMainWidget)
                     .InitialDayLengthHours(24.0f)
                     .InitialYearLengthDays(365.25f)
+                    .InitialDayOfYear(0.0f)
                     .OnParametersChanged_Lambda([]() {
                         UE_LOG(LogTemp, Log, TEXT("MainWidget parameters changed."));
                     })
                 ]
 
-               // Centralized Buttons (using ButtonRowWidget)
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 .HAlign(HAlign_Center)
@@ -73,10 +76,9 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                     .OnCalculateBiome(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnCalculateBiomeClicked))
                 ]
 
-                // Results Widget
                 + SVerticalBox::Slot()
                 .FillHeight(1.0f)
-                .Padding(0, 10) // Space between ButtonRow and ResultsWidget
+                .Padding(0, 10)
                 [
                     SAssignNew(ResultsWidget, SResultsWidget)
                 ]
@@ -99,6 +101,13 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 
 void BiomeEditorToolkit::OnUploadButtonClicked()
 {
+    // Initialize PlanetTime with user inputs
+    float DayLengthHours = 24.0f; // Default or fetch from user input
+    float YearLength = 365.0f;    // Default or fetch from user input
+
+    // Initialize the PlanetTime singleton
+    FPlanetTime::Initialize(YearLength, DayLengthHours, 0.0f, 0, 0.0f);
+    
     IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
     if (!DesktopPlatform)
     {
@@ -115,14 +124,14 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
             TEXT("Select Heightmap"),
             FPaths::ProjectContentDir(),
             TEXT(""),
-            TEXT("All Supported Files (*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg;)|*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg;|Raw Files (*.raw;*.r16;*.r32)|*.raw;*.r16;*.r32|Image Files (*.png;*.jpg;*.jpeg;)|*.png;*.jpg;*.jpeg;"),
+            TEXT("All Supported Files (*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg)|*.raw;*.r16;*.r32;*.png;*.jpg;*.jpeg|Raw Files (*.raw;*.r16;*.r32)|*.raw;*.r16;*.r32|Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"),
             EFileDialogFlags::None,
             OutFiles))
     {
         if (OutFiles.Num() > 0)
         {
             FString SelectedFile = OutFiles[0];
-            this->HeightmapData.Empty();           
+            this->HeightmapData.Empty();
 
             if (!UHeightmapParser::ParseHeightmap(
                 SelectedFile,
@@ -135,7 +144,8 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
                 ParsedMaxLongitude,
                 this->HeightmapData,
                 this->Width,
-                this->Height))
+                this->Height,
+                Resolution))
             {
                 if (ResultsWidget.IsValid())
                 {
@@ -145,7 +155,6 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
             }
             else
             {
-                // Create a grayscale texture from HeightmapData
                 UTexture2D* HeightmapTexture = CreateHeightmapTexture(HeightmapData, Width, Height);
 
                 if (ResultsWidget.IsValid())
@@ -199,7 +208,7 @@ UTexture2D* BiomeEditorToolkit::CreateHeightmapTexture(const TArray<FHeightmapCe
         }
     }
 
-     UTexture2D* HeightmapTexture = UTexture2D::CreateTransient(ScaledWidth, ScaledHeight);
+    UTexture2D* HeightmapTexture = UTexture2D::CreateTransient(ScaledWidth, ScaledHeight);
     if (!HeightmapTexture)
     {
         return nullptr;
@@ -231,37 +240,175 @@ void BiomeEditorToolkit::OnAnalyzeHydrologyClicked()
         {
             ResultsWidget->UpdateResults(TEXT("No heightmap data available."));
         }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("ResultsWidget is invalid."));
+        }
         return;
     }
 
-    // Perform hydrology analysis
-    TArray<FVector2D> FlowDirections;
-    TArray<float> FlowAccumulation;
-    TMap<int32, TArray<FVector>> SeasonalStreamPaths;
-    float StreamThreshold = 10.0f; // Example threshold value
-
-    if (HydrologyCalculator::AnalyzeHydrology(
-            HeightmapData,
-            Width,
-            Height,
-            FlowDirections,
-            FlowAccumulation,
-            StreamThreshold,
-            SeasonalStreamPaths,
-            0.0f))
+    // Ensure ResultsWidget validity before updating it
+    if (!ResultsWidget.IsValid())
     {
-        if (ResultsWidget.IsValid())
-        {
-            ResultsWidget->UpdateResults(TEXT("Hydrology analysis complete."));
-        }
+        UE_LOG(LogTemp, Error, TEXT("ResultsWidget is invalid."));
+        return;
     }
-    else
+
+    // Date Calculation based on user input
+    FPlanetTime& PlanetTime = FPlanetTime::GetInstance();
+
+    // Get day of year from planetary time    
+    int32 YearLength = PlanetTime.GetYearLength();
+    int32 DayOfYear = PlanetTime.GetDayOfYear();
+
+    // Allow configurable StreamThreshold and other parameters
+    // Declare necessary output variables
+    TArray<FVector2D> OutFlowDirections;     // For flow directions
+    TArray<float> OutFlowAccumulation;       // For flow accumulation
+    TArray<float> OutFlowDepth; 
+    float MaxFlowDepth;
+    float StreamThreshold = 100.0f / (Resolution.X + Resolution.Y);
+    float TimeOfYear = DayOfYear/YearLength;
+
+    TMap<int32, TArray<FVector>> SeasonalStreamPaths;
+
+    if (!HydrologyCalculator::AnalyzeHydrology(
+            HeightmapData,
+            this->Width,
+            this->Height,
+            Resolution,
+            OutFlowDirections,
+            OutFlowAccumulation,
+            OutFlowDepth,
+            MaxFlowDepth,
+            StreamThreshold,
+            SeasonalStreamPaths))
     {
+        UE_LOG(LogTemp, Error, TEXT("Hydrology analysis failed."));
         if (ResultsWidget.IsValid())
         {
             ResultsWidget->UpdateResults(TEXT("Failed to analyze hydrology."));
         }
+        return;
     }
+
+    TArray<FColor> TextureColors;
+    TArray<FVector> TextureVectors;
+
+    // Generate visualization texture
+    TArray<FColor> TextureData = HydrologyCalculator::GenerateVisualizationTexture(
+        SeasonalStreamPaths, 
+        HeightmapData, 
+        OutFlowDepth, 
+        MaxFlowDepth, 
+        Width, Height, 
+        MinAltitudeSlider, 
+        MaxAltitudeSlider,
+        TextureColors,
+        TextureVectors);
+    
+    // Create and display hydrology texture
+    UTexture2D* HydrologyTexture = CreateHydrologyTexture(TextureColors, Width, Height);// Where is TextureData coming from
+
+    if (ResultsWidget.IsValid())
+    {
+        ResultsWidget->UpdateHydrologyVisualization(TextureVectors, Width, Height);// Where is TextureData coming from
+    }
+
+    if (!SaveHydrologyImage(TextureColors, Width, Height))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to save hydrology image."));
+    }
+}
+
+
+UTexture2D* BiomeEditorToolkit::CreateHydrologyTexture(const TArray<FColor>& TextureData, int32 TextureWidth, int32 TextureHeight)
+{
+    UTexture2D* Texture = UTexture2D::CreateTransient(TextureWidth, TextureHeight, PF_B8G8R8A8);
+    if (!Texture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to create hydrology texture."));
+        return nullptr;
+    }
+
+    FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+    Mip.BulkData.Lock(LOCK_READ_WRITE);
+    void* Data = Mip.BulkData.Realloc(TextureWidth * TextureHeight * sizeof(FColor));
+    FMemory::Memcpy(Data, TextureData.GetData(), TextureData.Num() * sizeof(FColor));
+    Mip.BulkData.Unlock();
+
+    Texture->UpdateResource();
+    return Texture;
+}
+
+bool BiomeEditorToolkit::SaveHydrologyImage(const TArray<FColor>& TextureData, int32 ImageWidth, int32 ImageHeight)
+{
+    IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+    if (!DesktopPlatform)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Desktop platform not available."));
+        return false;
+    }
+
+    TArray<FString> OutFiles;
+    if (!DesktopPlatform->SaveFileDialog(
+            nullptr,
+            TEXT("Save Hydrology Image"),
+            FPaths::ProjectContentDir(),
+            TEXT("Hydrology.png"),
+            TEXT("Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"),
+            EFileDialogFlags::None,
+            OutFiles))
+    {
+        return false; // User canceled
+    }
+
+    FString SavePath = OutFiles[0];
+
+    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+
+    // Check if the module is loaded
+    if (!FModuleManager::Get().IsModuleLoaded(TEXT("ImageWrapper")))
+    {
+        UE_LOG(LogTemp, Error, TEXT("ImageWrapper module is not loaded."));
+        return false;
+    }
+
+    // Create the image wrapper
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+    if (!ImageWrapper.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to create ImageWrapper."));
+        return false;
+    }
+
+    // Set raw data into the image wrapper
+    if (!ImageWrapper->SetRaw(TextureData.GetData(), TextureData.Num() * sizeof(FColor), ImageWidth, ImageHeight, ERGBFormat::BGRA, 8))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to set raw image data into ImageWrapper."));
+        return false;
+    }
+
+    // Compress the data
+    const TArray64<uint8>& CompressedData = ImageWrapper->GetCompressed();
+    if (CompressedData.Num() == 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to compress image data."));
+        return false;
+    }
+
+    // Save the file
+    if (FFileHelper::SaveArrayToFile(CompressedData, *SavePath))
+    {
+        UE_LOG(LogTemp, Log, TEXT("Hydrology image successfully saved to %s"), *SavePath);
+        return true;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to save hydrology image to %s"), *SavePath);
+        return false;
+    }
+
 }
 
 void BiomeEditorToolkit::OnCalculateBiomeClicked()
@@ -273,21 +420,25 @@ void BiomeEditorToolkit::OnCalculateBiomeClicked()
             ResultsWidget->UpdateResults(TEXT("No heightmap data available."));
         }
         return;
-    }
-
-    float DayLength = 24.0f; // Example default value
-    float YearLength = 365.25f; // Example default value
-
-    FPlanetTime PlanetTime(DayLength, YearLength);
+    }    
 
     FString BiomeResults = BiomeCalculatorInstance->CalculateBiomeFromInput(
         MinLatitudeSlider, MaxLatitudeSlider,
         ParsedMinLongitude, ParsedMaxLongitude,
         MinAltitudeSlider, MaxAltitudeSlider,
-        SeaLevelSlider, HeightmapData, PlanetTime);
+        SeaLevelSlider,
+        HeightmapData);
 
     if (ResultsWidget.IsValid())
     {
         ResultsWidget->UpdateResults(BiomeResults);
     }
+}
+
+float BiomeEditorToolkit::GetTimeOfYear()
+{
+    int32 DayOfYear = MainWidget->GetDayOfYear();    
+    float DaysInAYear = MainWidget->GetYearLengthDays();
+
+    return DayOfYear / DaysInAYear; // Normalized value between 0.0 and 1.0
 }

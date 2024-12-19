@@ -1,6 +1,14 @@
 #include "HeightmapParser.h"
+#include "Async/ParallelFor.h"
 #include "Altitude.h"
+#include "Preprocessing.h"
 #include "DistanceToOcean.h"
+#include "OceanTemperature.h"
+#include "Humidity.h"
+#include "Precipitation.h"
+#include "UnifiedWindCalculator.h"
+#include "Misc/FileHelper.h"
+#include "Math/UnrealMathUtility.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Modules/ModuleManager.h"
@@ -14,39 +22,51 @@ bool UHeightmapParser::ParseHeightmap(
     float MaxLatitude,
     float& OutMinLongitude,
     float& OutMaxLongitude,
-    TArray<FHeightmapCell>& OutData,
-    int32& Width,
-    int32& Height)
+    TArray<FHeightmapCell>& OutHeightmapData,
+    int32& OutWidth,
+    int32& OutHeight,
+    FVector2D& OutResolution)
 {
     TArray<float> RawData;
     int32 BitDepth = 0;
 
-    if (!LoadHeightmap(FilePath, RawData, Width, Height, BitDepth))
+    if (!LoadHeightmap(FilePath, RawData, OutWidth, OutHeight, BitDepth))
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap: %s"), *FilePath);
         return false;
     }
 
-    if (Width <= 0 || Height <= 0)
+    if (OutWidth <= 0 || OutHeight <= 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("Invalid heightmap dimensions: %dx%d"), Width, Height);
+        UE_LOG(LogTemp, Error, TEXT("Invalid heightmap dimensions: %dx%d"), OutWidth, OutHeight);
         return false;
     }
 
-    if (Width * Height != RawData.Num())
+    if (OutWidth * OutHeight != RawData.Num())
     {
-        UE_LOG(LogTemp, Error, TEXT("Mismatch between heightmap dimensions and data size. Width: %d, Height: %d, RawData size: %d"), Width, Height, RawData.Num());
+        UE_LOG(LogTemp, Error, TEXT("Mismatch between heightmap dimensions and data size. Width: %d, Height: %d, RawData size: %d"), OutWidth, OutHeight, RawData.Num());
         return false;
     }
 
-    EstimateLongitudeRange(MinLatitude, MaxLatitude, Width, Height, OutMinLongitude, OutMaxLongitude);
+    EstimateLongitudeRange(MinLatitude, MaxLatitude, OutWidth, OutHeight, OutMinLongitude, OutMaxLongitude);
 
-    OutData.Empty(Width * Height);
-    for (int32 y = 0; y < Height; ++y)
+    // Calculate resolution (pixels per degree)
+    float LatitudeRange = MaxLatitude - MinLatitude;
+    float LongitudeRange = OutMaxLongitude - OutMinLongitude;
+
+    OutResolution.X = OutHeight / LatitudeRange; // Pixels per degree latitude
+    OutResolution.Y = OutWidth / LongitudeRange; // Pixels per degree longitude
+
+    // Log resolution for debugging
+    UE_LOG(LogTemp, Log, TEXT("Heightmap resolution: %f px/degree (latitude), %f px/degree (longitude)"), OutResolution.X, OutResolution.Y);
+
+    // Parse raw data into heightmap cells
+    OutHeightmapData.Empty(OutWidth * OutHeight);
+    for (int32 y = 0; y < OutHeight; ++y)
     {
-        for (int32 x = 0; x < Width; ++x)
+        for (int32 x = 0; x < OutWidth; ++x)
         {
-            int32 Index = y * Width + x;
+            int32 Index = y * OutWidth + x;
 
              if (Index >= RawData.Num())
             {
@@ -57,37 +77,42 @@ bool UHeightmapParser::ParseHeightmap(
             uint8 PixelValue = static_cast<uint8>(FMath::Clamp(RawData[Index] * 255.0f, 0.0f, 255.0f));
 
             FHeightmapCell Cell;
-            Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(Height));
-            Cell.Longitude = OutMinLongitude + (OutMaxLongitude - OutMinLongitude) * (x / static_cast<float>(Width));
+            Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(OutHeight));
+            Cell.Longitude = OutMinLongitude + (OutMaxLongitude - OutMinLongitude) * (x / static_cast<float>(OutWidth));
             Cell.Altitude = CalculateAltitude(PixelValue, MinAltitude, MaxAltitude);
 
             if (Cell.Altitude <= SeaLevel)
             {
                 Cell.OceanDepth = CalculateOceanDepth(SeaLevel, Cell.Altitude);
                 Cell.DistanceToOcean = 0.0f;
+                Cell.CellType = ECellType::Ocean;
             }
             else
             {
                 Cell.OceanDepth = 0.0f;
-                Cell.DistanceToOcean = FLT_MAX;
+                Cell.CellType = ECellType::Land;                
             }
 
-            OutData.Add(Cell);
+            OutHeightmapData.Add(Cell);
         }
     }
 
-    if (!CalculateDistanceToOcean(OutData, Width, Height))
+    // DistanceToOcean calculation
+    if (!CalculateDistanceToOcean(OutHeightmapData, OutWidth, OutHeight))
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to calculate distances to ocean."));
         return false;
     }
+
+    // Preprocess additional derived data
+    Preprocessing::PreprocessData(OutHeightmapData, OutWidth, OutHeight);
 
     return true;
 }
 
 bool UHeightmapParser::LoadHeightmap(
     const FString& FilePath,
-    TArray<float>& OutHeightmapData,
+    TArray<float>& OutRawData,
     int32& OutWidth,
     int32& OutHeight,
     int32& BitDepth)
@@ -96,12 +121,12 @@ bool UHeightmapParser::LoadHeightmap(
 
     if (FileExtension == TEXT("png") || FileExtension == TEXT("jpg") || FileExtension == TEXT("jpeg"))
     {
-        return ParseImageHeightmap(FilePath, OutHeightmapData, OutWidth, OutHeight, BitDepth);
+        return ParseImageHeightmap(FilePath, OutRawData, OutWidth, OutHeight, BitDepth);
     }
     else if (FileExtension == TEXT("r16") || FileExtension == TEXT("r32") || FileExtension == TEXT("raw"))
     {
         BitDepth = (FileExtension == TEXT("r16")) ? 16 : 32;
-        return ParseRawHeightmap(FilePath, OutHeightmapData, OutWidth, OutHeight, BitDepth);
+        return ParseRawHeightmap(FilePath, OutRawData, OutWidth, OutHeight, BitDepth);
     }
     else
     {
@@ -112,7 +137,7 @@ bool UHeightmapParser::LoadHeightmap(
 
 bool UHeightmapParser::ParseImageHeightmap(
     const FString& FilePath,
-    TArray<float>& OutHeightmapData,
+    TArray<float>& OutRawData,
     int32& OutWidth,
     int32& OutHeight,
     int32& BitDepth)
@@ -153,7 +178,7 @@ bool UHeightmapParser::ParseImageHeightmap(
 
         // Convert raw byte data directly to normalized floating-point values
         int32 NumPixels = RawByteData.Num() / 4; // Each pixel is 4 bytes
-        OutHeightmapData.Reserve(NumPixels);
+        OutRawData.Reserve(NumPixels);
 
         for (int32 i = 0; i < RawByteData.Num(); i += 4)
         {
@@ -161,7 +186,7 @@ bool UHeightmapParser::ParseImageHeightmap(
                         (RawByteData[i + 1] << 8) | RawByteData[i]; // Combine bytes into a 32-bit integer
 
             // Normalize to [0.0, 1.0] using the maximum possible value for 32-bit data
-            OutHeightmapData.Add(static_cast<float>(Value) / 4294967295.0f);
+            OutRawData.Add(static_cast<float>(Value) / 4294967295.0f);
         }
     }
     else if (BitDepth == 16)
@@ -175,12 +200,12 @@ bool UHeightmapParser::ParseImageHeightmap(
 
         // Convert raw byte data directly to normalized floating-point values
         int32 NumPixels = RawByteData.Num() / 2; // Each pixel is 2 bytes
-        OutHeightmapData.Reserve(NumPixels);
+        OutRawData.Reserve(NumPixels);
 
         for (int32 i = 0; i < RawByteData.Num(); i += 2)
         {
             uint16 Value = (RawByteData[i + 1] << 8) | RawByteData[i]; // Combine bytes into a 16-bit integer
-            OutHeightmapData.Add(static_cast<float>(Value) / 65535.0f); // Normalize to [0.0, 1.0] and store as float
+            OutRawData.Add(static_cast<float>(Value) / 65535.0f); // Normalize to [0.0, 1.0] and store as float
         }
     }
     else if (BitDepth == 8)
@@ -192,10 +217,10 @@ bool UHeightmapParser::ParseImageHeightmap(
             return false;
         }
 
-        OutHeightmapData.Reserve(Raw8BitData.Num());
+        OutRawData.Reserve(Raw8BitData.Num());
         for (uint8 Value : Raw8BitData)
         {
-            OutHeightmapData.Add(Value / 255.0f); // Normalize to [0.0, 1.0]
+            OutRawData.Add(Value / 255.0f); // Normalize to [0.0, 1.0]
         }
     }
     else

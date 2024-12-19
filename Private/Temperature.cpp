@@ -13,7 +13,7 @@ const float POLAR_LATITUDE_THRESHOLD = 90.0f;
 float Temperature::CalculateSurfaceTemperature(float Latitude, float Altitude, int DayOfYear, float Humidity, const FPlanetTime& PlanetTime)
 {
     // Solar declination angle based on day of year
-    float DeclinationAngle = 23.5f * FMath::Cos(2.0f * PI * (DayOfYear / PlanetTime.GetYearLengthDays()));
+    float DeclinationAngle = 23.5f * FMath::Cos(2.0f * PI * (DayOfYear / PlanetTime.GetYearLength()));
     float SolarInsolation = FMath::Max(0.0f, FMath::Cos(FMath::DegreesToRadians(Latitude - DeclinationAngle)));
 
     // Base temperature at sea level
@@ -38,26 +38,4 @@ float Temperature::CalculateSurfaceTemperature(float Latitude, float Altitude, i
     SurfaceTemp -= NighttimeCooling;
 
     return SurfaceTemp;
-}
-
-void Temperature::TestLatitudeTemperature()
-{
-    TArray<float> Latitudes = { 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f };
-    float Altitude = 0.0f; // Use sea level for testing
-    FString FilePath = FPaths::ProjectSavedDir() / "LatitudeTemperatureLog.txt";
-
-    FString Output = "Latitude, Temperature\n";
-    FPlanetTime PlanetTime(86400.0f, 365.25f, 12);
-
-    for (float Latitude : Latitudes)
-    {
-        float Temperature = Temperature::CalculateSurfaceTemperature(Latitude, Altitude, 1, 0.5f, PlanetTime);
-        Output += FString::Printf(TEXT("%.1f, %.2f\n"), Latitude, Temperature);
-    }
-
-    // Save to file
-    FFileHelper::SaveStringToFile(Output, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
-
-    // Optional: Log to Unreal console
-    UE_LOG(LogTemp, Log, TEXT("Latitude temperature test completed. Results saved to: %s"), *FilePath);
 }

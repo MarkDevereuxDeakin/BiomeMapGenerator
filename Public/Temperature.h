@@ -21,9 +21,4 @@ public:
      */
     static float CalculateSurfaceTemperature(float Latitude, float Altitude, int DayOfYear, float Humidity, const FPlanetTime& PlanetTime);
 
-    /**
-     * Test function for temperature calculations at various latitudes.
-     * For debugging or validation purposes.
-     */
-    static void TestLatitudeTemperature();
 };
