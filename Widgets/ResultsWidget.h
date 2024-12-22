@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HeightmapCell.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
@@ -11,7 +12,7 @@ public:
     SLATE_END_ARGS()
 
     /** Constructs the widget */
-    void Construct(const FArguments& InArgs);
+    void Construct(const FArguments& InArgs, const TArray<FHeightmapCell>& InHeightmapData, int32 InWidth, int32 InHeight);
 
     /** Updates the displayed results. */
     void UpdateResults(const FString& ResultsText);
@@ -19,22 +20,28 @@ public:
      /** Updates the displayed heightmap texture. */
     void UpdateHeightmapTexture(UTexture2D* HeightmapTexture);
 
-    void UpdateHydrologyVisualization(const TArray<FVector>& HydrologyData, int32 Width, int32 Height);
+    void UpdateBiomeMapTexture(UTexture2D* BiomeMapTexture); 
 
-    // Add this function to update the hydrology texture
-    void UpdateHydrologyTexture(UTexture2D* HydrologyTexture);   
+    // Tab switching functions
+    void ShowHeightmap();
+    void ShowBiomeMap();
 
+    FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+    void UpdateHeightmapData(const TArray<FHeightmapCell>& NewHeightmapData, int32 NewWidth, int32 NewHeight);
+    
 private:
+    TArray<FHeightmapCell> HeightmapData; // Declare HeightmapData here
+    int32 Width = 0;
+    int32 Height = 0;
 
     // Result Display
     TSharedPtr<STextBlock> ResultsTextBlock;
     TSharedPtr<SWidgetSwitcher> ImageSwitcher; // For switching between images
     TSharedPtr<SImage> HeightmapImage;        // Heightmap display
-    TSharedPtr<SImage> HydrologyImage;        // Hydrology display
+    TSharedPtr<SImage> BiomeMapImage;        // Biome Map display
+    TSharedPtr<STextBlock> BiomeTypeText;   // Biome Type Text display
     TSharedPtr<FSlateImageBrush> HeightmapBrush;   // Brush for heightmap
-    TSharedPtr<FSlateImageBrush> HydrologyBrush;
+    TSharedPtr<FSlateImageBrush> BiomeMapBrush;     // Brush for Biome Map
 
-    // Tab switching functions
-    FReply OnShowHeightmapClicked();
-    FReply OnShowHydrologyClicked();
+    
 };

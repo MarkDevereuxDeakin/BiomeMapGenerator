@@ -9,11 +9,28 @@ void SLatitudeSliderWidget::Construct(const FArguments& InArgs)
 
     ChildSlot
     [
-        SNew(SHorizontalBox)
+        SNew(SHorizontalBox)        
+
+        // The Slider
+        + SHorizontalBox::Slot()
+        .FillWidth(0.25f)
+        [
+            SNew(SMultiHandleSlider)
+            .MinValue(MinLatitude)
+            .MaxValue(MaxLatitude)
+            .HandleValues_Lambda([this]() -> TArray<float> {
+                return {MinLatitude, MaxLatitude};
+            })
+            .OnValueChanged(this, &SLatitudeSliderWidget::HandleSliderValueChanged)
+            .SliderInterval(10.0f)
+            .LabelFormatter([](float Value) -> FString {
+                return FString::Printf(TEXT("%.0f°"), Value); // Format as degrees
+            })
+        ]
 
         // Vertical Text for Latitude
         + SHorizontalBox::Slot()
-        .AutoWidth()
+        .FillWidth(0.25f)
         .HAlign(HAlign_Right)
         .VAlign(VAlign_Center)       
         [
@@ -28,23 +45,6 @@ void SLatitudeSliderWidget::Construct(const FArguments& InArgs)
                 .Justification(ETextJustify::Center)
                 .Font(FSlateFontInfo(FCoreStyle::GetDefaultFont(), 12)) // Adjust the size
             ]
-        ]
-
-        // The Slider
-        + SHorizontalBox::Slot()
-        .AutoWidth()
-        [
-            SNew(SMultiHandleSlider)
-            .MinValue(MinLatitude)
-            .MaxValue(MaxLatitude)
-            .HandleValues_Lambda([this]() -> TArray<float> {
-                return {MinLatitude, MaxLatitude};
-            })
-            .OnValueChanged(this, &SLatitudeSliderWidget::HandleSliderValueChanged)
-            .SliderInterval(10.0f)
-            .LabelFormatter([](float Value) -> FString {
-                return FString::Printf(TEXT("%.0f°"), Value); // Format as degrees
-            })
         ]
     ];
 }

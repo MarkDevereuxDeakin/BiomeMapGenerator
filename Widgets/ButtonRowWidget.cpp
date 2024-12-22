@@ -9,7 +9,6 @@ void SButtonRowWidget::Construct(const FArguments& InArgs)
 {
     OnUploadHeightmap = InArgs._OnUploadHeightmap; // Bind delegates
     OnCalculateBiome = InArgs._OnCalculateBiome; // Bind delegates
-    OnAnalyzeHydrology = InArgs._OnAnalyzeHydrology; // Bind delegates
 
     ChildSlot
     [
@@ -17,26 +16,29 @@ void SButtonRowWidget::Construct(const FArguments& InArgs)
 
         + SHorizontalBox::Slot()
         .AutoWidth()
+        .HAlign(HAlign_Center)
         [
-            SNew(SButton)
-            .Text(FText::FromString("Upload Heightmap"))
-            .OnClicked(this, &SButtonRowWidget::HandleUploadClicked)
+            SNew(SBox)
+            .WidthOverride(150.0f)
+            [
+                SNew(SButton)
+                .Text(FText::FromString("Upload Heightmap"))
+                .OnClicked(this, &SButtonRowWidget::HandleUploadClicked)
+            ]
+            
         ]
-
+        
         + SHorizontalBox::Slot()
         .AutoWidth()
         [
-            SNew(SButton)
-            .Text(FText::FromString("Analyze Hydrology")) // New button
-            .OnClicked(this, &SButtonRowWidget::HandleAnalyzeHydrologyClicked)
-        ]
-
-        + SHorizontalBox::Slot()
-        .AutoWidth()
-        [
-            SNew(SButton)
-            .Text(FText::FromString("Calculate Biome"))
-            .OnClicked(this, &SButtonRowWidget::HandleCalculationClicked)
+            SNew(SBox)
+            .WidthOverride(150.0f)
+            [
+                SNew(SButton)
+                .Text(FText::FromString("Calculate Biome"))
+                .OnClicked(this, &SButtonRowWidget::HandleCalculationClicked)
+            ]
+            
         ]
     ];
 }
@@ -46,15 +48,6 @@ FReply SButtonRowWidget::HandleUploadClicked()
     if (OnUploadHeightmap.IsBound())
     {
         OnUploadHeightmap.Execute();
-    }
-    return FReply::Handled();
-}
-
-FReply SButtonRowWidget::HandleAnalyzeHydrologyClicked()
-{
-    if (OnAnalyzeHydrology.IsBound())
-    {
-        OnAnalyzeHydrology.Execute();
     }
     return FReply::Handled();
 }

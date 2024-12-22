@@ -43,19 +43,14 @@ private:
 
     // Callback functions for button events    
     void OnUploadButtonClicked();
-    void OnAnalyzeHydrologyClicked();
     void OnCalculateBiomeClicked();
+    void OnShowHeightmapClicked();
+    void OnShowBiomeMapClicked();
     float GetTimeOfYear();
 
     // Texture creation methods
     UTexture2D* CreateHeightmapTexture(const TArray<FHeightmapCell>& MapData, int32 HeightmapWidth, int32 HeightmapHeight);
-    UTexture2D* CreateHydrologyTexture(const TArray<FColor>& TextureData, int32 Width, int32 Height);
-
-    // Save hydrology image
-    bool SaveHydrologyImage(const TArray<FColor>& TextureData, int32 Width, int32 Height);
-
-    // Callback for hydrology calculation
-    void OnHydrologyCalculationComplete(const TArray<FVector>& HydrologyData, int32 Width, int32 Height);
+    UTexture2D* CreateBiomeMapTexture(const TArray<FColor>& TextureData, int32 TextureWidth, int32 TextureHeight);
 
     // Helper variables for storing slider values
     float MinLatitudeSlider = -90.0f;

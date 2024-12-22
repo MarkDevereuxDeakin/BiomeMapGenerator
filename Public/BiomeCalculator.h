@@ -22,7 +22,7 @@ public:
      * @return The calculated biome as a string.
      */
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
-    FString CalculateBiome(const FHeightmapCell& Cell);
+    FString CalculateBiome(FHeightmapCell& Cell);
 
     /**
      * Calculate biomes for an entire heightmap input.
@@ -47,7 +47,7 @@ public:
         float MinAltitude, // Use value from slider
         float MaxAltitude, // Use value from slider
         float SeaLevel, // Use value from slider
-        const TArray<FHeightmapCell>& HeightmapData);
+        TArray<FHeightmapCell>& HeightmapData);
 
     /**
      * Filter biome candidates based on environmental parameters.

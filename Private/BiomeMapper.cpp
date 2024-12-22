@@ -1,10 +1,5 @@
 #include "BiomeMapper.h"
 #include "PlanetTime.h"
-#include "WindUtils.h"
-#include "Temperature.h"
-#include "Precipitation.h"
-#include "OceanTemperature.h"
-#include "UnifiedWindCalculator.h"
 #include "BiomeEditorMode.h"
 #include "EditorModeRegistry.h"
 #include "Editor/EditorEngine.h" // Ensure this is included for editor functionality

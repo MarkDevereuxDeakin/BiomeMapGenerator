@@ -24,6 +24,7 @@ public:
     static void AdjustFlowForEnvironment(
     const FHeightmapCell& Cell,
     float& FlowAccumulation,
+    const float HumidityFactor,
     int DayOfYear,
     const FPlanetTime& PlanetTime);
 

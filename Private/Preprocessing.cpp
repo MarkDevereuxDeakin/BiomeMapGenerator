@@ -17,46 +17,67 @@ bool Preprocessing::PreprocessData(TArray<FHeightmapCell>& HeightmapData, int32 
     TArray<float> DistanceMap;
     TArray<int32> ClosestOceanIndices;
 
-    // Date Calculation based on user input
+    // Initialize PlanetTime Singleton
     FPlanetTime& PlanetTime = FPlanetTime::GetInstance();
+    const int32 YearLength = PlanetTime.GetYearLength();
+    const int32 DayLength = PlanetTime.GetDayLengthSeconds();
+    const int32 DayOfYear = PlanetTime.GetDayOfYear();
 
-    // Get day of year from planetary time    
-    int32 YearLength = PlanetTime.GetYearLength();
-    int32 DayLength = PlanetTime.GetDayLengthSeconds();
-    int32 DayOfYear = PlanetTime.GetDayOfYear();
-
+    // Compute Closest Ocean Cells
     if (!FindClosestOceanCell(HeightmapData, Width, Height, DistanceMap, ClosestOceanIndices))
     {
         return false;
     }
 
-    ParallelFor (HeightmapData.Num(), [&](int32 i)
+    // Precompute OceanToLandVectors
+    ParallelFor(HeightmapData.Num(), [&](int32 i)
     {
-        FHeightmapCell& Cell = HeightmapData[i];        
+        FHeightmapCell& Cell = HeightmapData[i];
+        if (ClosestOceanIndices[i] != -1)
+        {
+            const FHeightmapCell& NearestOceanCell = HeightmapData[ClosestOceanIndices[i]];
+            Cell.OceanToLandVector = FVector2D(
+                Cell.Longitude - NearestOceanCell.Longitude,
+                Cell.Latitude - NearestOceanCell.Latitude
+            ).GetSafeNormal();
+        }
+        else
+        {
+            Cell.OceanToLandVector = FVector2D::ZeroVector;
+        }
+    });
 
-        // Calculate wind direction based on latitude, longitude, day of the year and time of day.        
+    // Main ParallelFor Loop
+    ParallelFor(HeightmapData.Num(), [&](int32 i)
+    {
+        FHeightmapCell& Cell = HeightmapData[i];
+
+        // Calculate Wind Direction and Onshore Wind
         Cell.WindDirection = UnifiedWindCalculator::CalculateRefinedWind(Cell.Latitude, Cell.Longitude, 0.0f);
+        Cell.IsWindOnshore = WindUtils::IsOnshoreWind(Cell.WindDirection, Cell.OceanToLandVector);
 
-        // Determine if the wind is onshore
-        Cell.IsWindOnshore = WindUtils::IsOnshoreWind(Cell.WindDirection, Cell.OceanToLandVector);// Should this be Cell.WindDirection
-
-        // Calculate relative humidity
+        // Calculate Relative Humidity
         Cell.RelativeHumidity = Humidity::CalculateRelativeHumidity(Cell.Latitude, Cell.DistanceToOcean, Cell.IsWindOnshore);
 
-        //Calculate base temperature for a cell.
-        Cell.Temperature = Temperature::CalculateSurfaceTemperature(Cell.Latitude, Cell.Altitude, DayOfYear, Cell.RelativeHumidity, PlanetTime);
+        // Base Temperature Calculation
+        Cell.Temperature = Temperature::CalculateSurfaceTemperature(
+            Cell.Latitude, Cell.Altitude, DayOfYear, Cell.RelativeHumidity, PlanetTime);
 
         // Determine Flow Directions
         Cell.FlowDirection = OceanCurrents::ValidateFlowDirection(Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
 
-        // Adjust temperature based on ocean effects
-        Cell.Temperature = OceanTemperature::CalculateOceanTemp(Cell.Temperature, Cell.DistanceToOcean, Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
-        
-        // Calculate precipitation
-        Cell.AnnualPrecipitation = ::Precipitation::CalculatePrecipitation(Cell.Latitude, Cell.Altitude, Cell.DistanceToOcean, Cell.RelativeHumidity);
+        // Adjust Temperature for Ocean Effects
+        Cell.Temperature = OceanTemperature::CalculateOceanTemp(
+            Cell.Temperature, Cell.DistanceToOcean, Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
+
+        // Calculate Precipitation
+        Cell.AnnualPrecipitation = Precipitation::CalculatePrecipitation(
+            Cell.Latitude, Cell.Altitude, Cell.DistanceToOcean, Cell.RelativeHumidity);
 
         // Adjust Climate Factors
-        WindUtils::AdjustWeatherFactors(Cell.IsWindOnshore, Cell.WindDirection.Size(), Cell.AnnualPrecipitation, Cell.Temperature, Cell.DistanceToOcean);
+        WindUtils::AdjustWeatherFactors(
+            Cell.IsWindOnshore, Cell.WindDirection.Size(), Cell.AnnualPrecipitation, 
+            Cell.Temperature, Cell.DistanceToOcean);
     });
 
     return true;

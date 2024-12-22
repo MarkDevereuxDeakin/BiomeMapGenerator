@@ -4,38 +4,25 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/SBoxPanel.h"
 
-void SResultsWidget::Construct(const FArguments& InArgs)
+void SResultsWidget::Construct(const FArguments& InArgs, const TArray<FHeightmapCell>& InHeightmapData, int32 InWidth, int32 InHeight)
 {
+    HeightmapData = InHeightmapData;
+    Width = InWidth;
+    Height = InHeight;
+    
     ChildSlot
     [
         SNew(SVerticalBox)
-        
-        // Tabs for Switching
+
+        // Biome Type Display
         + SVerticalBox::Slot()
         .AutoHeight()
         .HAlign(HAlign_Center)
+        .Padding(5)
         [
-            SNew(SHorizontalBox)
-            
-            // Tab for Heightmap
-            + SHorizontalBox::Slot()
-            .AutoWidth()
-            .Padding(5)
-            [
-                SNew(SButton)
-                .Text(FText::FromString("Heightmap"))
-                .OnClicked(this, &SResultsWidget::OnShowHeightmapClicked)
-            ]
-
-            // Tab for Hydrology
-            + SHorizontalBox::Slot()
-            .AutoWidth()
-            .Padding(5)
-            [
-                SNew(SButton)
-                .Text(FText::FromString("Hydrology"))
-                .OnClicked(this, &SResultsWidget::OnShowHydrologyClicked)
-            ]
+            SAssignNew(BiomeTypeText, STextBlock)
+            .Text(FText::FromString("Hover over a biome to see its type"))
+            .Justification(ETextJustify::Center)
         ]
 
         // Widget Switcher for Shared Display Space
@@ -66,8 +53,8 @@ void SResultsWidget::Construct(const FArguments& InArgs)
                 .WidthOverride(1024.0f)
                 .HeightOverride(1024.0f)
                 [
-                    SAssignNew(HydrologyImage, SImage)
-                    .Image(HydrologyBrush.Get())
+                    SAssignNew(BiomeMapImage, SImage)
+                    .Image(BiomeMapBrush.Get())
                 ]
             ]
         ]
@@ -113,87 +100,94 @@ void SResultsWidget::UpdateHeightmapTexture(UTexture2D* HeightmapTexture)
     }
 }
 
-void SResultsWidget::UpdateHydrologyVisualization(const TArray<FVector>& HydrologyData, int32 Width, int32 Height)
+void SResultsWidget::UpdateBiomeMapTexture(UTexture2D* BiomeMapTexture)
 {
-    TArray<FColor> TextureData;
-    TextureData.Reserve(Width * Height);
-
-    for (int32 y = 0; y < Height; ++y)
+    if (!BiomeMapTexture)
     {
-        for (int32 x = 0; x < Width; ++x)
-        {
-            int32 Index = y * Width + x;
-            bool IsHydrologyPoint = HydrologyData.Contains(FVector(x, y, 0.0f));
-
-            FColor PixelColor = IsHydrologyPoint ? FColor::Blue : FColor::Black;
-            TextureData.Add(PixelColor);
-        }
-    }
-
-    UTexture2D* HydrologyTexture = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8);
-    if (!HydrologyTexture)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to create hydrology texture."));
+        UE_LOG(LogTemp, Error, TEXT("BiomeMapTexture is null."));
         return;
     }
 
-    FTexture2DMipMap& Mip = HydrologyTexture->GetPlatformData()->Mips[0];
-    Mip.BulkData.Lock(LOCK_READ_WRITE);
-    void* TextureMemory = Mip.BulkData.Realloc(Width * Height * sizeof(FColor));
-    FMemory::Memcpy(TextureMemory, TextureData.GetData(), TextureData.Num() * sizeof(FColor));
-    Mip.BulkData.Unlock();
-
-    HydrologyTexture->UpdateResource();
-    UpdateHydrologyTexture(HydrologyTexture);
-}
-
-void SResultsWidget::UpdateHydrologyTexture(UTexture2D* HydrologyTexture)
-{
-    if (!HydrologyTexture)
+    if (!BiomeMapBrush.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid hydrology texture passed to UpdateHydrologyTexture."));
-        return;
-    }
-
-    // Create a new brush if it doesn't exist
-    if (!HydrologyBrush.IsValid())
-    {
-        HydrologyBrush = MakeShareable(new FSlateImageBrush(
-            HydrologyTexture,
-            FVector2D(HydrologyTexture->GetSizeX(), HydrologyTexture->GetSizeY())
-        ));
+        BiomeMapBrush = MakeShareable(new FSlateImageBrush(BiomeMapTexture,
+            FVector2D(BiomeMapTexture->GetSizeX(), BiomeMapTexture->GetSizeY())));
     }
     else
     {
-        // Update the existing brush
-        HydrologyBrush->SetResourceObject(HydrologyTexture);
-        HydrologyBrush->ImageSize = FVector2D(HydrologyTexture->GetSizeX(), HydrologyTexture->GetSizeY());
+        BiomeMapBrush->SetResourceObject(BiomeMapTexture);
+        BiomeMapBrush->ImageSize = FVector2D(BiomeMapTexture->GetSizeX(), BiomeMapTexture->GetSizeY());
     }
 
-    // Update the SImage widget
-    if (HydrologyImage.IsValid())
+    if (BiomeMapImage.IsValid())
     {
-        HydrologyImage->SetImage(HydrologyBrush.Get()); // Use Get() to retrieve the pointer
+        BiomeMapImage->SetImage(BiomeMapBrush.Get());
+        UE_LOG(LogTemp, Log, TEXT("Biome map image updated with dimensions: %dx%d"),
+            BiomeMapTexture->GetSizeX(), BiomeMapTexture->GetSizeY());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("BiomeMapImage is not valid."));
     }
 }
 
-
-FReply SResultsWidget::OnShowHeightmapClicked()
+void SResultsWidget::ShowHeightmap()
 {
     if (ImageSwitcher.IsValid())
     {
-        ImageSwitcher->SetActiveWidgetIndex(0); // Show the Heightmap
+        ImageSwitcher->SetActiveWidgetIndex(0); // Switch to Heightmap
     }
-    return FReply::Handled();
 }
 
-FReply SResultsWidget::OnShowHydrologyClicked()
+void SResultsWidget::ShowBiomeMap()
 {
     if (ImageSwitcher.IsValid())
     {
-        ImageSwitcher->SetActiveWidgetIndex(1); // Show the Hydrology
+        ImageSwitcher->SetActiveWidgetIndex(1); // Switch to Biome Map
     }
+}
+
+FReply SResultsWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+    FVector2D LocalMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+    // Get the size of the BiomeMap texture display area
+    FVector2D TextureDisplaySize = MyGeometry.GetLocalSize();
+
+    // Ensure the cursor is within the bounds of the BiomeMap
+    if (LocalMousePosition.X < 0.0f || LocalMousePosition.Y < 0.0f || 
+        LocalMousePosition.X >= TextureDisplaySize.X || 
+        LocalMousePosition.Y >= TextureDisplaySize.Y)
+    {
+        // Reset biome text if the cursor is outside the bounds
+        if (BiomeTypeText.IsValid())
+        {
+            BiomeTypeText->SetText(FText::FromString(TEXT("")));
+        }
+        return FReply::Handled();
+    }
+
+    // Map cursor position to BiomeMap grid dimensions
+    int32 GridX = FMath::Clamp(FMath::FloorToInt((LocalMousePosition.X / TextureDisplaySize.X) * Width), 0, Width - 1);
+    int32 GridY = FMath::Clamp(FMath::FloorToInt((LocalMousePosition.Y / TextureDisplaySize.Y) * Height), 0, Height - 1);
+
+    
+        int32 Index = GridY * Width + GridX;
+        if (HeightmapData.IsValidIndex(Index))
+        {
+            const FHeightmapCell& Cell = HeightmapData[Index];
+            if (BiomeTypeText.IsValid())
+            {
+                BiomeTypeText->SetText(FText::FromString(Cell.BiomeType));
+            }
+        }    
+
     return FReply::Handled();
 }
 
-
+void SResultsWidget::UpdateHeightmapData(const TArray<FHeightmapCell>& NewHeightmapData, int32 NewWidth, int32 NewHeight)
+{
+    HeightmapData = NewHeightmapData;
+    Width = NewWidth;
+    Height = NewHeight;
+}

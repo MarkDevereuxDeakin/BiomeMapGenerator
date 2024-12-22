@@ -1,29 +1,52 @@
 #include "BiomeCalculator.h"
-#include "Humidity.h"
 #include "Async/ParallelFor.h"
-#include "WindUtils.h"
-#include "OceanTemperature.h"
-#include "Temperature.h"
-#include "Precipitation.h"
-#include "UnifiedWindCalculator.h"
 #include "BiomeWeightedProbability.h"
+
+
+// Map of biome colors
+static const TMap<FString, FColor> BiomeColorMap = {
+    {"Tropical Rainforest", FColor::FromHex("#006400")},
+    {"Tropical Monsoon Forests", FColor::FromHex("#228B22")},
+    {"Savanna", FColor::FromHex("#F5DEB3")},
+    {"Temperate Steppe and Savanna", FColor::FromHex("#8b7d63")},
+    {"Temperate Broadleaf", FColor::FromHex("#877116")},
+    {"Subtropical Evergreen Forest", FColor::FromHex("#89b855")},
+    {"Mediterranean", FColor::FromHex("#513058")},
+    {"Xeric Shrubland", FColor::FromHex("#c4947c")},
+    {"Dry Forest and Woodland Savanna", FColor::FromHex("#59463a")},
+    {"Hot Arid Desert", FColor::FromHex("#782713")},
+    {"Tundra", FColor::FromHex("#30abf8")},
+    {"Montane Forests and Grasslands", FColor::FromHex("#077891")},
+    {"Taiga and Boreal Forests", FColor::FromHex("#084f45")},
+    {"Cold or Polar Desert", FColor::FromHex("#D3D3D3")}
+};
 
 // Helper function to classify biome
 //static TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);
 int counter = 100;
-FString UBiomeCalculator::CalculateBiome(const FHeightmapCell& Cell)
+FString UBiomeCalculator::CalculateBiome(FHeightmapCell& Cell)
 {
     // Filter Biomes based on adjusted values
     TArray<FString> Candidates = FilterBiomeCandidates(Cell.Temperature, Cell.AnnualPrecipitation);
 
-    // Calculate biome probabilities - Remove or comment this out once debugging is complete
-    if (Candidates.Num() > 0 && Candidates[0] != "Unknown Biome")
-    {
-        return CalculateBiomeProbabilities(Cell.Temperature, Cell.AnnualPrecipitation, Candidates);
-    }
-    
-    return "Unknown Biome";
+    // Determine the best biome
+    FString Biome = Candidates.Num() > 0 && Candidates[0] != "Unknown Biome"
+                        ? CalculateBiomeProbabilities(Cell.Temperature, Cell.AnnualPrecipitation, Candidates)
+                        : "Unknown Biome";
 
+    // Assign biome type and color to the cell
+    if (!Biome.IsEmpty() && BiomeColorMap.Contains(Biome))
+    {
+        Cell.BiomeType = Biome;
+        Cell.BiomeColor = BiomeColorMap[Biome];
+    }
+    else
+    {
+        Cell.BiomeType = "Unknown";
+        Cell.BiomeColor = FColor::Black;
+    }
+
+    return Biome;
 }
 
 FString UBiomeCalculator::CalculateBiomeFromInput(
@@ -34,7 +57,7 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     float MinAltitude, // Use value from slider 
     float MaxAltitude,  // Use value from slider
     float SeaLevel, // Use value from slider
-    const TArray<FHeightmapCell>& HeightmapData)
+    TArray<FHeightmapCell>& HeightmapData)
 {
     
     // Check for invalid input ranges
@@ -48,7 +71,7 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
 
     ParallelFor(HeightmapData.Num(), [&](int32 Index)
     {
-        const FHeightmapCell& Cell = HeightmapData[Index];
+        FHeightmapCell& Cell = HeightmapData[Index];
 
         if (Cell.CellType == ECellType::Land &&
             Cell.Latitude >= MinLatitude && Cell.Latitude <= MaxLatitude &&

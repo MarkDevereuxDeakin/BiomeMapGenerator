@@ -13,38 +13,38 @@ void DInfinity::CalculateFlowDirection(
     OutFlowDirections.Empty(Data.Num());
     OutFlowDirections.SetNum(Data.Num());
 
+    const TArray<FVector2D> NeighborOffsets = {
+        FVector2D(-1, -1), FVector2D(0, -1), FVector2D(1, -1),
+        FVector2D(-1,  0),                  FVector2D(1,  0),
+        FVector2D(-1,  1), FVector2D(0,  1), FVector2D(1,  1)
+    };
+
     ParallelFor(Data.Num(), [&](int32 Index)
     {
         int32 x = Index % Width;
         int32 y = Index / Width;
 
         float CurrentElevation = Data[Index].Altitude;
-
         FVector2D BestDirection = FVector2D::ZeroVector;
         float MaxSlope = 0.0f;
 
-        // Check all 8 neighboring cells
-        for (int32 dx = -1; dx <= 1; ++dx)
+        for (const FVector2D& Offset : NeighborOffsets)
         {
-            for (int32 dy = -1; dy <= 1; ++dy)
+            int32 NeighborX = x + Offset.X;
+            int32 NeighborY = y + Offset.Y;
+
+            if (NeighborX >= 0 && NeighborX < Width && NeighborY >= 0 && NeighborY < Height)
             {
-                if (dx == 0 && dy == 0) continue; // Skip current cell
-                int32 NeighborX = x + dx;
-                int32 NeighborY = y + dy;
+                int32 NeighborIndex = NeighborY * Width + NeighborX;
+                float NeighborElevation = Data[NeighborIndex].Altitude;
 
-                if (NeighborX >= 0 && NeighborX < Width && NeighborY >= 0 && NeighborY < Height)
+                float Distance = Offset.Size();
+                float Slope = (CurrentElevation - NeighborElevation) / Distance;
+
+                if (Slope > MaxSlope)
                 {
-                    int32 NeighborIndex = NeighborY * Width + NeighborX;
-                    float NeighborElevation = Data[NeighborIndex].Altitude;
-
-                    float Distance = FMath::Sqrt(static_cast<float>(dx * dx + dy * dy));
-                    float Slope = (CurrentElevation - NeighborElevation) / Distance;
-
-                    if (Slope > MaxSlope)
-                    {
-                        MaxSlope = Slope;
-                        BestDirection = FVector2D(dx, dy) / Distance; // Normalize direction
-                    }
+                    MaxSlope = Slope;
+                    BestDirection = Offset / Distance;
                 }
             }
         }
@@ -111,8 +111,7 @@ void DInfinity::CalculateFlowDepth(
 
         if (EffectiveRiverWidth > 0)
         {
-            float Depth = Accumulation * PrecipitationFactor / EffectiveRiverWidth;
-            OutFlowDepth[Index] = Depth;
+            OutFlowDepth[Index] = Accumulation * PrecipitationFactor / EffectiveRiverWidth;
         }
     });
 }

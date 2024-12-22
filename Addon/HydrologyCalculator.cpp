@@ -5,39 +5,32 @@
 #include "Humidity.h"
 #include "UnifiedWindCalculator.h"
 #include "PlanetTime.h"
+#include "Algo/MaxElement.h"
 #include "HeightmapCell.h"
 
-// Helper function to validate and adjust flow accumulation based on environment
 void HydrologyCalculator::AdjustFlowForEnvironment(
     const FHeightmapCell& Cell,
     float& FlowAccumulation,
+    const float HumidityFactor,
     int DayOfYear,
-    const FPlanetTime& PlanetTime){
+    const FPlanetTime& PlanetTime)
+{
+    const float FreezingAltitude = 2000.0f;
 
-    // Snowmelt and Freeze Logic
-    // Dynamic altitude threshold for freezing conditions
-const float FreezingAltitude = 2000.0f; // This could be adjusted dynamically based on regional data
-
-    // Snowmelt and Freeze Logic
-    if (Cell.Temperature < 0.0f) // Below freezing
+    // Freezing and snowmelt logic
+    if (Cell.Temperature < 0.0f)
     {
-        // Gradual freezing effect, reducing flow more as temperature decreases
-        float FreezeFactor = FMath::Clamp(1.0f + (Cell.Temperature / 10.0f), 0.0f, 1.0f); // Scaled by temperature
-        FlowAccumulation *= FreezeFactor; // Reduce flow gradually
+        float FreezeFactor = FMath::Clamp(1.0f + (Cell.Temperature / 10.0f), 0.0f, 1.0f);
+        FlowAccumulation *= FreezeFactor;
     }
-    else if (Cell.Temperature > 0.0f && Cell.Altitude > FreezingAltitude) // Snowmelt at high altitude
+    else if (Cell.Temperature > 0.0f && Cell.Altitude > FreezingAltitude)
     {
-        // Gradual snowmelt based on temperature above freezing
-        float MeltFactor = FMath::Clamp(Cell.Temperature / 10.0f, 0.0f, 1.0f); // Scaled by temperature
-        FlowAccumulation += Cell.AnnualPrecipitation * MeltFactor; // Increase flow with meltwater
+        float MeltFactor = FMath::Clamp(Cell.Temperature / 10.0f, 0.0f, 1.0f);
+        FlowAccumulation += Cell.AnnualPrecipitation * MeltFactor;
     }
 
-    // Evaporation Effect
-    float EvaporationFactor = 1.0f - (0.02f * Humidity::CalculateRelativeHumidity(
-        Cell.Latitude, Cell.DistanceToOcean, true
-    ));
-
-    FlowAccumulation *= FMath::Clamp(EvaporationFactor, 0.0f, 1.0f);
+    // Evaporation effect
+    FlowAccumulation *= HumidityFactor;
 }
 
 float HydrologyCalculator::CalculateEffectiveRiverWidth(const FHeightmapCell& Cell, float Slope)
@@ -87,7 +80,7 @@ bool HydrologyCalculator::AnalyzeHydrology(
     TArray<FVector2D>& OutFlowDirections,
     TArray<float>& OutFlowAccumulation,
     TArray<float>& OutFlowDepth,
-    float& MaxFlowDepth, 
+    float& MaxFlowDepth,
     float StreamThreshold,
     TMap<int32, TArray<FVector>>& OutSeasonalStreamPaths)
 {
@@ -97,122 +90,67 @@ bool HydrologyCalculator::AnalyzeHydrology(
         return false;
     }
 
-    // Date Calculation based on user input
     FPlanetTime& PlanetTime = FPlanetTime::GetInstance();
-
-    // Get day of year from planetary time    
-    int32 YearLength = PlanetTime.GetYearLength();
     int32 DayOfYear = PlanetTime.GetDayOfYear();
-    float TimeOfYear = DayOfYear/YearLength;
+    float TimeOfYear = static_cast<float>(DayOfYear) / PlanetTime.GetYearLength();
 
-    // Step 1: Calculate flow direction
     DInfinity::CalculateFlowDirection(HeightmapData, Width, Height, OutFlowDirections);
-
-    // Step 2: Calculate flow accumulation
     DInfinity::CalculateFlowAccumulation(HeightmapData, OutFlowDirections, Width, Height, OutFlowAccumulation);
 
-    // Step 3: Calculate Effective River Widths
-    TArray<float> EffectiveRiverWidths;
+    TArray<float> EffectiveRiverWidths, PrecipitationFactors;
     EffectiveRiverWidths.SetNum(HeightmapData.Num());
+    PrecipitationFactors.SetNum(HeightmapData.Num());
 
     ParallelFor(HeightmapData.Num(), [&](int32 Index)
     {
         const FHeightmapCell& Cell = HeightmapData[Index];
         FVector2D FlowDirection = OutFlowDirections[Index];
         float Slope = FMath::Abs(FlowDirection.X + FlowDirection.Y);
-        EffectiveRiverWidths[Index] = HydrologyCalculator::CalculateEffectiveRiverWidth(Cell, Slope);
-    });
-
-     // Step 4: Precompute PrecipitationFactor
-    TArray<float> PrecipitationFactors;
-    PrecipitationFactors.SetNum(HeightmapData.Num());
-
-    ParallelFor(HeightmapData.Num(), [&](int32 Index)
-    {
-        const FHeightmapCell& Cell = HeightmapData[Index];
+        EffectiveRiverWidths[Index] = CalculateEffectiveRiverWidth(Cell, Slope);
         PrecipitationFactors[Index] = FMath::Clamp(Cell.AnnualPrecipitation / 1000.0f, 0.1f, 2.0f);
     });
 
-    // Step 5: Calculate Flow Depth using effective river widths
     DInfinity::CalculateFlowDepth(
-        HeightmapData,
-        OutFlowAccumulation,
-        EffectiveRiverWidths, // Use precomputed values
-        Width,
-        Height,
-        OutFlowDepth,
-        PrecipitationFactors);
+        HeightmapData, OutFlowAccumulation, EffectiveRiverWidths,
+        Width, Height, OutFlowDepth, PrecipitationFactors);
 
-    // Find MaxFlowDepth
-    // ParallelFor and/or Sort function?
-    MaxFlowDepth = 0.0f;
-    for (float Depth : OutFlowDepth)
-    {
-        if (Depth > MaxFlowDepth)
-        {
-            MaxFlowDepth = Depth;
-        }
-    }
+    MaxFlowDepth = MaxFlowDepth = *Algo::MaxElement(OutFlowDepth);
 
-    // Step 5: Environmental adjustments
-    TArray<float> AdjustedFlowAccumulation = OutFlowAccumulation;
-    
+    float HumidityFactor = 1.0f - (0.02f * Humidity::CalculateRelativeHumidity(HeightmapData[0].Latitude, HeightmapData[0].DistanceToOcean, true));
 
-   // Parallel environmental adjustment
     ParallelFor(HeightmapData.Num(), [&](int32 Index)
     {
         AdjustFlowForEnvironment(
-            HeightmapData[Index],
-            AdjustedFlowAccumulation[Index],
-            DayOfYear,
-            PlanetTime);
+            HeightmapData[Index], OutFlowAccumulation[Index],
+            HumidityFactor, DayOfYear, PlanetTime);
     });
 
-    // Step 6: Seasonal adjustments
     FCriticalSection MapMutex;
     ParallelFor(4, [&](int32 Season)
     {
         TArray<FVector> StreamPaths;
         float SeasonalPrecipitationMultiplier = 1.0f + 0.2f * FMath::Sin((Season + TimeOfYear) * PI / 2.0f);
 
-        // Temporary storage for seasonal flow depth
-        TArray<float> SeasonalFlowDepth;
-        SeasonalFlowDepth.SetNumZeroed(Width * Height);
-
-        for (int32 y = 0; y < Height; ++y)
+        ParallelFor(Width * Height, [&](int32 Index)
         {
-            for (int32 x = 0; x < Width; ++x)
+            int32 x = Index % Width;
+            int32 y = Index / Width;
+
+            const FHeightmapCell& Cell = HeightmapData[Index];
+            float EffectiveRiverWidth = EffectiveRiverWidths[Index];
+            float AdjustedAccumulation = OutFlowAccumulation[Index] * SeasonalPrecipitationMultiplier;
+
+            if (EffectiveRiverWidth > 0.0f)
             {
-                int32 Index = y * Width + x;
-                const FHeightmapCell& Cell = HeightmapData[Index];                
-
-                // Validate precipitation value for the current cell
-                float PrecipitationFactor = PrecipitationFactors[Index];
-
-                // Adjust flow accumulation for the season
-                float AdjustedAccumulation = AdjustedFlowAccumulation[Index] * SeasonalPrecipitationMultiplier;
-
-                // Use precomputed EffectiveRiverWidths for seasonal depth calculation
-                float EffectiveRiverWidth = EffectiveRiverWidths[Index];
-                if (EffectiveRiverWidth > 0.0f)
+                float SeasonalFlowDepth = AdjustedAccumulation * PrecipitationFactors[Index] / EffectiveRiverWidth;
+                if (SeasonalFlowDepth >= CalculateStreamThreshold(Cell, Resolution))
                 {
-                    SeasonalFlowDepth[Index] = AdjustedAccumulation * PrecipitationFactor / EffectiveRiverWidth;
-                }
-
-                // Calculate stream threshold dynamically
-                float CellStreamThreshold = HydrologyCalculator::CalculateStreamThreshold(Cell, Resolution);
-
-                // Check if the flow depth meets the stream threshold
-                if (SeasonalFlowDepth[Index] >= CellStreamThreshold)
-                {
-                    FVector StreamPoint = FVector(x, y, Cell.Altitude);
-                    StreamPaths.Add(StreamPoint);
+                    FScopeLock Lock(&MapMutex);
+                    StreamPaths.Add(FVector(x, y, Cell.Altitude));
                 }
             }
-        }
+        });
 
-        // Lock the critical section and update seasonal stream paths
-        FScopeLock Lock(&MapMutex);
         OutSeasonalStreamPaths.Add(Season, StreamPaths);
     });
 

@@ -8,17 +8,18 @@ void SAltitudeSliderWidget::Construct(const FArguments& InArgs)
     SeaLevel = InArgs._InitialSeaLevel;
     OnAltitudeChanged = InArgs._OnAltitudeChanged;
 
-   ChildSlot
+    ChildSlot
     [
         SNew(SHorizontalBox)
-
+        
         // Vertical Text for Altitude and Sea Level
         + SHorizontalBox::Slot()
-        .AutoWidth()
+        .FillWidth(0.25f)
         .HAlign(HAlign_Right)
         .VAlign(VAlign_Center)        
         [
             SNew(SVerticalBox)
+            
             + SVerticalBox::Slot()
             .VAlign(VAlign_Center) // Center vertically
             .Padding(0.0f, 50.0f)         // Add vertical padding for centering
@@ -44,7 +45,7 @@ void SAltitudeSliderWidget::Construct(const FArguments& InArgs)
 
         // The Slider
         + SHorizontalBox::Slot()
-        .AutoWidth()
+        .FillWidth(0.25f)
         [
             SNew(SMultiHandleSlider)
             .MinValue(MinAltitude)

@@ -26,7 +26,9 @@ struct BIOMEMAPPER_API FHeightmapCell
     /** Default constructor with initialization */
     FHeightmapCell()
         : Altitude(0.0f),
-          CellType(ECellType::Ocean),
+          BiomeType("Ocean"),
+          BiomeColor(FColor::Black),          
+          CellType(ECellType::Land),
           DistanceToOcean(FMath::Max(0.0f, FLT_MAX)),
           FlowDirection("Clockwise"),
           IsWindOnshore(false),
@@ -46,6 +48,14 @@ struct BIOMEMAPPER_API FHeightmapCell
     /** Altitude or depth of the cell. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     float Altitude;
+
+    /** Biome Type */
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    FString BiomeType;
+
+    /** Biome Color */
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    FColor BiomeColor;
 
     /** Cell type, Land, Ocean, River or Lake */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
