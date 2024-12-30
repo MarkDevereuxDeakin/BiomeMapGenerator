@@ -1,10 +1,8 @@
 #include "BiomeEditorToolkit.h"
 #include "PlanetTime.h"
-#include "MultiHandleSlider.h"
+#include "BiomeInputShared.h"
 #include "HeaderFooterWidget.h"
 #include "MainWidget.h"
-#include "AltitudeSliderWidget.h"
-#include "LatitudeSliderWidget.h"
 #include "ButtonRowWidget.h"
 #include "TabRowWidget.h"
 #include "ResultsWidget.h"
@@ -21,9 +19,15 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/FileHelper.h"
 
+FInputParameters InputParams;
+
 void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 {
     BiomeCalculatorInstance = NewObject<UBiomeCalculator>();
+
+    // Initialize MainWidget properly
+    SAssignNew(MainWidget, SMainWidget)
+        .OnParametersChanged(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnParametersChanged));
 
     ChildSlot
     [
@@ -31,49 +35,44 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
         .Padding(10)
         [
             SNew(SHorizontalBox)
-
-            // Left: Altitude Slider
             + SHorizontalBox::Slot()
-            .FillWidth(0.1f)
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            .FillWidth(0.2f)
             [
-                SNew(SAltitudeSliderWidget)
-                .InitialMinAltitude(MinAltitudeSlider)
-                .InitialMaxAltitude(MaxAltitudeSlider)
-                .InitialSeaLevel(SeaLevelSlider)
-                .OnAltitudeChanged_Lambda([this]() {
-                    UE_LOG(LogTemp, Log, TEXT("Altitude slider values updated."));
-                })
+                SNew(SHorizontalBox)            
+
+                // Center: Main Area
+                + SHorizontalBox::Slot()
+                .FillWidth(1.0f)
+                [
+                    SNew(SVerticalBox)
+
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
+                    .HAlign(HAlign_Center)
+                    [
+                         MainWidget.ToSharedRef() // Use MainWidget
+                    ]
+
+                    + SVerticalBox::Slot()
+                    .AutoHeight()
+                    .HAlign(HAlign_Center)
+                    .Padding(10)
+                    [
+                        SNew(SButtonRowWidget)
+                        .OnUploadHeightmap(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnUploadButtonClicked))
+                        .OnCalculateBiome(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnCalculateBiomeClicked))
+                    ]
+                ]
             ]
 
-            // Center: Main Area
             + SHorizontalBox::Slot()
-            .FillWidth(1.0f)
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            .FillWidth(0.8f)
             [
-                SNew(SVerticalBox)
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .HAlign(HAlign_Center)
-                [
-                    SNew(SMainWidget)
-                    .InitialDayLengthHours(24.0f)
-                    .InitialYearLengthDays(365.25f)
-                    .InitialDayOfYear(0.0f)
-                    .OnParametersChanged_Lambda([]() {
-                        UE_LOG(LogTemp, Log, TEXT("MainWidget parameters changed."));
-                    })
-                ]
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .HAlign(HAlign_Center)
-                .Padding(10)
-                [
-                    SNew(SButtonRowWidget)
-                    .OnUploadHeightmap(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnUploadButtonClicked))
-                    .OnCalculateBiome(FSimpleDelegate::CreateRaw(this, &BiomeEditorToolkit::OnCalculateBiomeClicked))
-                ]
-
+                SNew (SVerticalBox)                
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 .HAlign(HAlign_Center)
@@ -90,19 +89,9 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
                 [
                     SAssignNew(ResultsWidget, SResultsWidget, HeightmapData, Width, Height)
                 ]
-            ]
-
-            // Right: Latitude Slider
-            + SHorizontalBox::Slot()
-            .FillWidth(0.1f)
-            [
-                SNew(SLatitudeSliderWidget)
-                .InitialMinLatitude(MinLatitudeSlider)
-                .InitialMaxLatitude(MaxLatitudeSlider)
-                .OnLatitudeChanged_Lambda([this]() {
-                    UE_LOG(LogTemp, Log, TEXT("Latitude slider values updated."));
-                })
-            ]
+                
+            ]    
+           
         ]
     ];
 }
@@ -110,11 +99,19 @@ void BiomeEditorToolkit::Construct(const FArguments& InArgs)
 void BiomeEditorToolkit::OnUploadButtonClicked()
 {
     // Initialize PlanetTime with user inputs
-    float DayLengthHours = 24.0f; // Default or fetch from user input
-    float YearLength = 365.0f;    // Default or fetch from user input
+    float DayLengthHours = DayLength; // Default or fetch from user input
+    float YearDuration = YearLength;    // Default or fetch from user input
+    int32 Date = DayOfYear;
+
+    // Populate InputParams with current values
+    InputParams.NorthernLatitude = MainWidget->GetNorthernLatitude();
+    InputParams.SouthernLatitude = MainWidget->GetSouthernLatitude();
+    InputParams.MaximumAltitude = MainWidget->GetMaximumAltitude();
+    InputParams.MinimumAltitude = MainWidget->GetMinimumAltitude();
+    InputParams.SeaLevel = MainWidget->GetSeaLevel();
 
     // Initialize the PlanetTime singleton
-    FPlanetTime::Initialize(YearLength, DayLengthHours, 0.0f, 0, 0.0f);
+    FPlanetTime::Initialize(YearDuration, DayLength, 0.0f, Date, 0.0f);
     
     IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
     if (!DesktopPlatform)
@@ -143,11 +140,7 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
 
             if (!UHeightmapParser::ParseHeightmap(
                 SelectedFile,
-                SeaLevelSlider,
-                MinAltitudeSlider,
-                MaxAltitudeSlider,
-                MinLatitudeSlider,
-                MaxLatitudeSlider,
+                InputParams,
                 ParsedMinLongitude,
                 ParsedMaxLongitude,
                 this->HeightmapData,
@@ -211,7 +204,7 @@ UTexture2D* BiomeEditorToolkit::CreateHeightmapTexture(const TArray<FHeightmapCe
 
             // Bilinear interpolation between four nearest pixels
             const FHeightmapCell& Cell = MapData[BaseY * HeightmapWidth + BaseX];
-            uint8 GrayValue = static_cast<uint8>(FMath::Clamp((Cell.Altitude - MinAltitudeSlider) / (MaxAltitudeSlider - MinAltitudeSlider) * 255.0f, 0.0f, 255.0f));
+            uint8 GrayValue = static_cast<uint8>(FMath::Clamp((Cell.Altitude - InputParams.MinimumAltitude) / (InputParams.MaximumAltitude - InputParams.MinimumAltitude) * 255.0f, 0.0f, 255.0f));
             TextureData.Add(FColor(GrayValue, GrayValue, GrayValue, 255));
         }
     }
@@ -252,10 +245,9 @@ void BiomeEditorToolkit::OnCalculateBiomeClicked()
     }    
 
     FString BiomeResults = BiomeCalculatorInstance->CalculateBiomeFromInput(
-        MinLatitudeSlider, MaxLatitudeSlider,
-        ParsedMinLongitude, ParsedMaxLongitude,
-        MinAltitudeSlider, MaxAltitudeSlider,
-        SeaLevelSlider,
+        InputParams,
+        ParsedMinLongitude,
+        ParsedMaxLongitude,
         HeightmapData);
 
     if (ResultsWidget.IsValid())
@@ -284,10 +276,10 @@ void BiomeEditorToolkit::OnCalculateBiomeClicked()
 
 float BiomeEditorToolkit::GetTimeOfYear()
 {
-    int32 DayOfYear = MainWidget->GetDayOfYear();    
-    float DaysInAYear = MainWidget->GetYearLengthDays();
+    int32 Day = MainWidget->GetDayOfYear();    
+    float Year = MainWidget->GetYearLengthDays();
 
-    return DayOfYear / DaysInAYear; // Normalized value between 0.0 and 1.0
+    return Day / Year; // Normalized value between 0.0 and 1.0
 }
 
 UTexture2D* BiomeEditorToolkit::CreateBiomeMapTexture(const TArray<FColor>& TextureData, int32 TextureWidth, int32 TextureHeight)
@@ -322,5 +314,24 @@ void BiomeEditorToolkit::OnShowBiomeMapClicked()
     if (ResultsWidget.IsValid())
     {
         ResultsWidget->ShowBiomeMap();
+    }
+}
+
+void BiomeEditorToolkit::OnParametersChanged()
+{
+    if (MainWidget.IsValid())
+    {
+        InputParams.NorthernLatitude = MainWidget->GetNorthernLatitude();
+        InputParams.SouthernLatitude = MainWidget->GetSouthernLatitude();
+        InputParams.MaximumAltitude = MainWidget->GetMaximumAltitude();
+        InputParams.MinimumAltitude = MainWidget->GetMinimumAltitude();
+        InputParams.SeaLevel = MainWidget->GetSeaLevel();
+
+        UE_LOG(LogTemp, Log, TEXT("Parameters Changed:"));
+        UE_LOG(LogTemp, Log, TEXT("Northern Latitude: %.2f"), InputParams.NorthernLatitude);
+        UE_LOG(LogTemp, Log, TEXT("Southern Latitude: %.2f"), InputParams.SouthernLatitude);
+        UE_LOG(LogTemp, Log, TEXT("Maximum Altitude: %.2f"), InputParams.MaximumAltitude);
+        UE_LOG(LogTemp, Log, TEXT("Minimum Altitude: %.2f"), InputParams.MinimumAltitude);
+        UE_LOG(LogTemp, Log, TEXT("Sea Level: %.2f"), InputParams.SeaLevel);
     }
 }

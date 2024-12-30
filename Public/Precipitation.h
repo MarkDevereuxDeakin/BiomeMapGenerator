@@ -16,5 +16,12 @@ public:
      * @param RelativeHumidity - Relative humidity as a percentage [0, 100].
      * @return Calculated precipitation in mm/year.
      */
-    static float CalculatePrecipitation(float Latitude, float Altitude, float DistanceToOcean, float RelativeHumidity);
+    static float CalculatePrecipitation(
+    float Latitude,
+    float Altitude,
+    float DistanceToOcean,
+    float RelativeHumidity,
+    float Slope,
+    FVector2D WindDirection,
+    FVector2D OceanToLandVector);
 };

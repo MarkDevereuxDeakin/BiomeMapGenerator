@@ -7,8 +7,13 @@
  */
 struct FBiomeWeights
 {
-    float TemperatureWeight;      // Weight for temperature influence
-    float PrecipitationWeight;    // Weight for precipitation influence
+    float TempWeight;       // Weight for temperature influence
+    float PrecWeight;       // Weight for precipitation influence
+    float HumidityWeight;   // Weight for humidity influence
+    float LatitudeWeight;   // Weight for latitude influence
+    float AltitudeWeight;   // Weight for altitude influence
+    float SlopeWeight;      // Weight for slope influence
+    float AspectWeight;     // Weight for aspect influence
 };
 
 /** Global weight map associating biomes with their respective weights. */
@@ -18,7 +23,20 @@ extern TMap<FString, FBiomeWeights> BiomeWeightMap;
  * Calculate biome probabilities based on environmental parameters.
  * @param AdjustedTemperature - Adjusted temperature value.
  * @param Precipitation - Total precipitation value.
+ * @param Humidity - Relative humidity value.
+ * @param Latitude - Latitude value.
+ * @param Altitude - Altitude value.
+ * @param Slope - Slope value.
+ * @param Aspect - Aspect value.
  * @param Candidates - List of candidate biomes.
  * @return The most probable biome as a string.
  */
-FString CalculateBiomeProbabilities(float AdjustedTemperature, float Precipitation, TArray<FString> Candidates);
+FString CalculateBiomeProbabilities(
+    float AdjustedTemperature,
+    float Precipitation,
+    float Humidity,
+    float Latitude,
+    float Altitude,
+    float Slope,
+    float Aspect,
+    TArray<FString> Candidates);

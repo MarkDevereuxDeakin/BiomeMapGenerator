@@ -23,5 +23,5 @@ public:
      * @param IsOnshore - True if wind is onshore, false otherwise.
      * @return Relative humidity as a percentage.
      */
-    static float CalculateRelativeHumidity(float Latitude, float DistanceToOcean, bool IsOnshore);
+    static float CalculateRelativeHumidity(float Latitude, float DistanceToOcean, float Altitude, bool IsOnshore);
 };

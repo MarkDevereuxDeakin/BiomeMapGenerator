@@ -7,8 +7,6 @@
 #include "BiomeCalculator.h"
 
 class SButtonRowWidget;
-class SAltitudeSliderWidget;
-class SLatitudeSliderWidget;
 class SMainWidget;
 
 /**
@@ -36,9 +34,7 @@ private:
     // Results Widget for displaying results
     TSharedPtr<SResultsWidget> ResultsWidget;
 
-    // Slider widgets for input
-    TSharedPtr<SAltitudeSliderWidget> AltitudeSliderWidget;
-    TSharedPtr<SLatitudeSliderWidget> LatitudeSliderWidget;
+    // Slider widgets for input   
     TSharedPtr<SMainWidget> MainWidget;
 
     // Callback functions for button events    
@@ -48,16 +44,22 @@ private:
     void OnShowBiomeMapClicked();
     float GetTimeOfYear();
 
+    /** Callback for when parameters are changed in the MainWidget */
+    void OnParametersChanged();
+
     // Texture creation methods
     UTexture2D* CreateHeightmapTexture(const TArray<FHeightmapCell>& MapData, int32 HeightmapWidth, int32 HeightmapHeight);
     UTexture2D* CreateBiomeMapTexture(const TArray<FColor>& TextureData, int32 TextureWidth, int32 TextureHeight);
 
     // Helper variables for storing slider values
-    float MinLatitudeSlider = -90.0f;
-    float MaxLatitudeSlider = 90.0f;
-    float MinAltitudeSlider = 0.0f;
-    float MaxAltitudeSlider = 2000.0f;
-    float SeaLevelSlider = 50.0f;
+    float DayLength = 24.0f;
+    float YearLength = 365.25;
+    float DayOfYear = 0.0f;
+    float SouthernLatitudeInput = 25.0f;
+    float NorthernLatitudeInput = 35.0f;
+    float MinimumAltitudeInput = 0.0f;
+    float MaximumAltitudeInput = 2000.0f;
+    float SeaLevelInput = 250.0f;
 
     // Parsed heightmap data
     TArray<FHeightmapCell> HeightmapData;

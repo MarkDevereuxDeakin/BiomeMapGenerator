@@ -19,6 +19,14 @@ public:
      * @param PlanetTime - Planetary time information.
      * @return Calculated surface temperature in Celsius.
      */
-    static float CalculateSurfaceTemperature(float Latitude, float Altitude, int DayOfYear, float Humidity, const FPlanetTime& PlanetTime);
+    static float CalculateSurfaceTemperature(
+        float Latitude,
+        float Altitude,
+        int DayOfYear,
+        float Humidity,
+        const FPlanetTime& PlanetTime,
+        float Slope,
+        float Aspect,
+        float WindSpeed);
 
 };

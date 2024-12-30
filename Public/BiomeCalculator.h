@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "HeightmapCell.h"
+#include "BiomeInputShared.h"
 #include "PlanetTime.h"
 #include "UObject/Object.h"
 #include "BiomeCalculator.generated.h"
@@ -26,13 +27,9 @@ public:
 
     /**
      * Calculate biomes for an entire heightmap input.
-     * @param MinLatitude - Minimum latitude (Slider).
-     * @param MaxLatitude - Maximum latitude (Slider).
+     * @param InputParams - Struct containing the input variables
      * @param MinLongitude - Calculated minimum longitude (float).
-     * @param MaxLongitude - Calculated maximum longitude (float).
-     * @param MinAltitude - Minimum altitude (string format).
-     * @param MaxAltitude - Maximum altitude (string format).
-     * @param SeaLevel - Sea level (string format).
+     * @param MaxLongitude - Calculated maximum longitude (float).     * 
      * @param HeightmapData - The heightmap data array.
      * @param PlanetTime - The planetary time information.
      * @return The calculated biome data as a string.
@@ -40,13 +37,9 @@ public:
     
     UFUNCTION(BlueprintCallable, Category = "Biome Calculator")
     FString CalculateBiomeFromInput(
-        float MinLatitude, // Use value from slider
-        float MaxLatitude, // Use value from slider
+        FInputParameters& InputParams,             
         float MinLongitude, // Use calculated Min Longitude
-        float MaxLongitude, // Use calculated Max Longitude
-        float MinAltitude, // Use value from slider
-        float MaxAltitude, // Use value from slider
-        float SeaLevel, // Use value from slider
+        float MaxLongitude, // Use calculated Max Longitude        
         TArray<FHeightmapCell>& HeightmapData);
 
     /**
@@ -56,5 +49,6 @@ public:
      * @return Array of biome candidates.
      */
     UFUNCTION(BlueprintCallable, category = "Biome Calculator")
-    TArray<FString> FilterBiomeCandidates(float Temperature, float AnnualPrecipitation);
+    TArray<FString> FilterBiomeCandidates(float Temperature, float AnnualPrecipitation, float Latitude, float Altitude, float Humidity);
+
 };

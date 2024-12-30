@@ -2,6 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BiomeInputShared.h"
 #include "HeightmapCell.h" // Assume this file defines FHeightmapCell
 #include "HeightmapParser.generated.h"
 
@@ -18,11 +19,7 @@ public:
     /**
      * Parses a heightmap file into structured data.
      * @param FilePath - Path to the heightmap file.
-     * @param SeaLevel - Altitude defining sea level.
-     * @param MinAltitude - Minimum altitude for normalization.
-     * @param MaxAltitude - Maximum altitude for normalization.
-     * @param MinLatitude - Minimum latitude for the heightmap.
-     * @param MaxLatitude - Maximum latitude for the heightmap.
+     * @param InputParams
      * @param OutMinLongitude - Calculated minimum longitude.
      * @param OutMaxLongitude - Calculated maximum longitude.
      * @param OutHeightmapData - Parsed heightmap cell data.
@@ -33,11 +30,7 @@ public:
      */
     static bool ParseHeightmap(
         const FString& FilePath,
-        float SeaLevel,
-        float MinAltitude,
-        float MaxAltitude,
-        float MinLatitude,
-        float MaxLatitude,
+        FInputParameters& InputParams,
         float& OutMinLongitude,
         float& OutMaxLongitude,
         TArray<FHeightmapCell>& OutHeightmapData,
@@ -45,6 +38,7 @@ public:
         int32& OutHeight,
         FVector2D& OutResolution
     );
+
 
 private:
     // Helper functions

@@ -25,7 +25,10 @@ struct BIOMEMAPPER_API FHeightmapCell
 
     /** Default constructor with initialization */
     FHeightmapCell()
-        : Altitude(0.0f),
+        : Albedo(0.0f),
+          Altitude(0.0f),
+          AnnualPrecipitation(FMath::Max(0.0f, 0.0f)),
+          Aspect(0.0f),
           BiomeType("Ocean"),
           BiomeColor(FColor::Black),          
           CellType(ECellType::Land),
@@ -35,9 +38,9 @@ struct BIOMEMAPPER_API FHeightmapCell
           Latitude(0.0f),
           Longitude(0.0f),
           OceanDepth(FMath::Max(0.0f, 0.0f)),
-          OceanToLandVector(FVector2D::ZeroVector),
-          AnnualPrecipitation(FMath::Max(0.0f, 0.0f)),
+          OceanToLandVector(FVector2D::ZeroVector),          
           RelativeHumidity(FMath::Clamp(0.0f, 0.0f, 1.0f)),
+          Slope(0.0f),
           Temperature(0.0f),
           WindDirection(FVector2D::ZeroVector)
           
@@ -45,9 +48,19 @@ struct BIOMEMAPPER_API FHeightmapCell
     
     GENERATED_BODY()
 
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float Albedo; // Reflectivity (0.0 - 1.0)
+    
     /** Altitude or depth of the cell. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
-    float Altitude;
+    float Altitude;    
+
+    /**Annualized precipitation for the cell in millimeters*/
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float AnnualPrecipitation;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float Aspect; // Direction the slope faces (0-360°)
 
     /** Biome Type */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
@@ -89,13 +102,12 @@ struct BIOMEMAPPER_API FHeightmapCell
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     FVector2D OceanToLandVector;
 
-    /**Annualized precipitation for the cell in millimeters*/
-    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
-    float AnnualPrecipitation;
-
     /**Relative Humidity*/
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     float RelativeHumidity;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float Slope; // Degrees of incline
 
     /**Temperature for a cell*/
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")

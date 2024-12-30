@@ -116,7 +116,7 @@ bool HydrologyCalculator::AnalyzeHydrology(
 
     MaxFlowDepth = MaxFlowDepth = *Algo::MaxElement(OutFlowDepth);
 
-    float HumidityFactor = 1.0f - (0.02f * Humidity::CalculateRelativeHumidity(HeightmapData[0].Latitude, HeightmapData[0].DistanceToOcean, true));
+    float HumidityFactor = 1.0f - (0.02f * Humidity::CalculateRelativeHumidity(HeightmapData[0].Latitude, HeightmapData[0].DistanceToOcean, HeightmapData[0].Altitude, true));
 
     ParallelFor(HeightmapData.Num(), [&](int32 Index)
     {

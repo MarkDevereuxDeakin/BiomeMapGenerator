@@ -7,6 +7,9 @@ void SLatitudeSliderWidget::Construct(const FArguments& InArgs)
     MaxLatitude = InArgs._InitialMaxLatitude;
     OnLatitudeChanged = InArgs._OnLatitudeChanged;
 
+    UE_LOG(LogTemp, Log, TEXT("SLatitudeSliderWidget constructed. Delegate Bound: %s"),
+           OnLatitudeChanged.IsBound() ? TEXT("True") : TEXT("False"));
+
     ChildSlot
     [
         SNew(SHorizontalBox)        
@@ -16,8 +19,8 @@ void SLatitudeSliderWidget::Construct(const FArguments& InArgs)
         .FillWidth(0.25f)
         [
             SNew(SMultiHandleSlider)
-            .MinValue(MinLatitude)
-            .MaxValue(MaxLatitude)
+            .MinValue(-90.0f)
+            .MaxValue(90.0f)
             .HandleValues_Lambda([this]() -> TArray<float> {
                 return {MinLatitude, MaxLatitude};
             })
@@ -63,5 +66,20 @@ void SLatitudeSliderWidget::HandleSliderValueChanged(const TArray<float>& NewVal
         {
             OnLatitudeChanged.Execute();
         }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("OnLatitudeChanged delegate is not bound!"));
+        }
+        
     }
+}
+
+float SLatitudeSliderWidget::GetMinLatitude() const
+{
+    return MinLatitude;
+}
+
+float SLatitudeSliderWidget::GetMaxLatitude() const
+{
+    return MaxLatitude;
 }

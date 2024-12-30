@@ -1,5 +1,6 @@
 #include "HeightmapParser.h"
 #include "Async/ParallelFor.h"
+#include "BiomeInputShared.h"
 #include "Altitude.h"
 #include "Preprocessing.h"
 #include "DistanceToOcean.h"
@@ -15,11 +16,7 @@
 
 bool UHeightmapParser::ParseHeightmap(
     const FString& FilePath,
-    float SeaLevel,
-    float MinAltitude,
-    float MaxAltitude,
-    float MinLatitude,
-    float MaxLatitude,
+    FInputParameters& InputParams,
     float& OutMinLongitude,
     float& OutMaxLongitude,
     TArray<FHeightmapCell>& OutHeightmapData,
@@ -48,10 +45,10 @@ bool UHeightmapParser::ParseHeightmap(
         return false;
     }
 
-    EstimateLongitudeRange(MinLatitude, MaxLatitude, OutWidth, OutHeight, OutMinLongitude, OutMaxLongitude);
+    EstimateLongitudeRange(InputParams.SouthernLatitude, InputParams.NorthernLatitude, OutWidth, OutHeight, OutMinLongitude, OutMaxLongitude);
 
     // Calculate resolution (pixels per degree)
-    float LatitudeRange = MaxLatitude - MinLatitude;
+    float LatitudeRange = InputParams.NorthernLatitude - InputParams.SouthernLatitude;
     float LongitudeRange = OutMaxLongitude - OutMinLongitude;
 
     OutResolution.X = OutHeight / LatitudeRange; // Pixels per degree latitude
@@ -74,16 +71,24 @@ bool UHeightmapParser::ParseHeightmap(
                 return false;
             }
 
-            uint8 PixelValue = static_cast<uint8>(FMath::Clamp(RawData[Index] * 255.0f, 0.0f, 255.0f));
+             // Normalize RawData value
+            float NormalizedValue = FMath::Clamp(RawData[Index], 0.0f, 1.0f);
+
+            // Convert normalized value to pixel value
+            uint8 PixelValue = static_cast<uint8>(NormalizedValue * 255.0f);
 
             FHeightmapCell Cell;
-            Cell.Latitude = MinLatitude + (MaxLatitude - MinLatitude) * (y / static_cast<float>(OutHeight));
-            Cell.Longitude = OutMinLongitude + (OutMaxLongitude - OutMinLongitude) * (x / static_cast<float>(OutWidth));
-            Cell.Altitude = CalculateAltitude(PixelValue, MinAltitude, MaxAltitude);
+            Cell.Latitude = InputParams.SouthernLatitude + 
+                            (InputParams.NorthernLatitude - InputParams.SouthernLatitude) * 
+                            (y / static_cast<float>(OutHeight));
+            Cell.Longitude = OutMinLongitude + 
+                            (OutMaxLongitude - OutMinLongitude) * 
+                            (x / static_cast<float>(OutWidth));
+            Cell.Altitude = CalculateAltitude(PixelValue, InputParams.MinimumAltitude, InputParams.MaximumAltitude);
 
-            if (Cell.Altitude <= SeaLevel)
+            if (Cell.Altitude <= InputParams.SeaLevel)
             {
-                Cell.OceanDepth = CalculateOceanDepth(SeaLevel, Cell.Altitude);
+                Cell.OceanDepth = CalculateOceanDepth(InputParams.SeaLevel, Cell.Altitude);
                 Cell.DistanceToOcean = 0.0f;
                 Cell.CellType = ECellType::Ocean;
             }
@@ -316,7 +321,10 @@ bool UHeightmapParser::ParseRawHeightmap(
     return true;
 }
 
-void UHeightmapParser::EstimateLongitudeRange(
+/***
+ * This is the Estimate Longitude for this file. The new current version
+ */
+ void UHeightmapParser::EstimateLongitudeRange(
     float MinLatitude,
     float MaxLatitude,
     int32 Width,

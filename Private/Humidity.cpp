@@ -33,10 +33,16 @@ float Humidity::GetBaseHumidity(float Latitude, float DistanceToOcean)
     return FMath::Clamp(BaseHumidity, 0.0f, 100.0f);
 }
 
-float Humidity::CalculateRelativeHumidity(float Latitude, float DistanceToOcean, bool IsOnshore)
+float Humidity::CalculateRelativeHumidity(float Latitude, float DistanceToOcean, float Altitude, bool IsOnshore)
 {
     // Step 1: Get base humidity
     float BaseHumidity = GetBaseHumidity(Latitude, DistanceToOcean);
+
+    // Apply exponential distance decay
+    BaseHumidity *= exp(-DistanceToOcean/50000.0);
+
+    // Adjust for Altitude
+    BaseHumidity -= 0.1 * Altitude;
 
     // Step 2: Adjust for wind direction
     if (IsOnshore)
