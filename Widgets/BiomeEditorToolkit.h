@@ -54,9 +54,10 @@ private:
     // Helper variables for storing slider values
     float DayLength = 24.0f;
     float YearLength = 365.25;
-    float DayOfYear = 0.0f;
-    float SouthernLatitudeInput = 25.0f;
+    float DayOfYear = 0.0f;    
     float NorthernLatitudeInput = 35.0f;
+    float SouthernLatitudeInput = 25.0f;
+    float CentralLongitudeInput = 0.0f;
     float MinimumAltitudeInput = 0.0f;
     float MaximumAltitudeInput = 2000.0f;
     float SeaLevelInput = 250.0f;

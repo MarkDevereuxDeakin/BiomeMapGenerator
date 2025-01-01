@@ -4,7 +4,6 @@
 #include "PlanetTime.h"
 #include "UnifiedWindCalculator.h"
 #include "WindUtils.h"
-#include "Humidity.h"
 #include "Precipitation.h"
 #include "Temperature.h"
 #include "OceanCurrents.h"
@@ -63,28 +62,35 @@ bool Preprocessing::PreprocessData(TArray<FHeightmapCell>& HeightmapData, int32 
         Cell.WindDirection = UnifiedWindCalculator::CalculateRefinedWind(Cell.Latitude, Cell.Longitude, 0.0f);
         Cell.IsWindOnshore = WindUtils::IsOnshoreWind(Cell.WindDirection, Cell.OceanToLandVector);
 
-        // Calculate Relative Humidity
-        Cell.RelativeHumidity = Humidity::CalculateRelativeHumidity(Cell.Latitude, Cell.DistanceToOcean, Cell.Altitude, Cell.IsWindOnshore);
+        if(Cell.CellType != ECellType::Ocean)
+        {
+             // Calculate Relative Humidity
+            //Cell.RelativeHumidity = Humidity::CalculateRelativeHumidity(Cell.Latitude, Cell.DistanceToOcean, Cell.Altitude, Cell.IsWindOnshore);
 
-        // Base Temperature Calculation
-        Cell.Temperature = Temperature::CalculateSurfaceTemperature(
-            Cell.Latitude, Cell.Altitude, DayOfYear, Cell.RelativeHumidity, PlanetTime, Cell.Slope, Cell.Aspect, Cell.WindDirection.Size());
+            // Base Temperature Calculation
+            Cell.Temperature = Temperature::CalculateSurfaceTemperature(
+                Cell.Latitude, Cell.Altitude, DayOfYear, /*Cell.RelativeHumidity,*/ PlanetTime, Cell.Slope, Cell.Aspect, Cell.WindDirection.Size());
 
-        // Determine Flow Directions
-        Cell.FlowDirection = OceanCurrents::ValidateFlowDirection(Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
+                    // Adjust Temperature for Ocean Effects
+            Cell.Temperature = OceanTemperature::CalculateOceanTemp(
+                Cell.Temperature, Cell.DistanceToOcean, Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
 
-        // Adjust Temperature for Ocean Effects
-        Cell.Temperature = OceanTemperature::CalculateOceanTemp(
-            Cell.Temperature, Cell.DistanceToOcean, Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
+            // Calculate Precipitation
+            Cell.AnnualPrecipitation = Precipitation::CalculatePrecipitation(
+                Cell.Latitude, Cell.Altitude, Cell.DistanceToOcean, /*Cell.RelativeHumidity,*/ Cell.Slope, Cell.WindDirection, Cell.OceanToLandVector);
 
-        // Calculate Precipitation
-        Cell.AnnualPrecipitation = Precipitation::CalculatePrecipitation(
-            Cell.Latitude, Cell.Altitude, Cell.DistanceToOcean, Cell.RelativeHumidity, Cell.Slope, Cell.WindDirection, Cell.OceanToLandVector);
+                // Adjust Climate Factors
+            WindUtils::AdjustWeatherFactors(
+                Cell.IsWindOnshore, Cell.WindDirection.Size(), Cell.AnnualPrecipitation, 
+                Cell.Temperature, Cell.DistanceToOcean);
 
-        // Adjust Climate Factors
-        WindUtils::AdjustWeatherFactors(
-            Cell.IsWindOnshore, Cell.WindDirection.Size(), Cell.AnnualPrecipitation, 
-            Cell.Temperature, Cell.DistanceToOcean);
+        }
+        /*else
+        {
+            // Simplified or predefined values for ocean cells
+            Cell.RelativeHumidity = 85.0f;
+           
+        }*/
         
     });
 

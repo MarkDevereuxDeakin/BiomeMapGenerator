@@ -89,6 +89,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(DayOfYear))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnDayOfYearChanged)
+                .ToolTipText(FText::FromString("Enter a value between 0 and Year Length"))
             ]
         ]
 
@@ -116,6 +117,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(NorthernLatitude))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnNorthernLatitudeChanged)
+                .ToolTipText(FText::FromString("Enter a value between -90 and 90 degrees"))
             ]
         ]
 
@@ -143,6 +145,35 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(SouthernLatitude))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnSouthernLatitudeChanged)
+                .ToolTipText(FText::FromString("Enter a value between -90 and 90 degrees"))
+            ]
+        ]
+
+        // Southern Most Latitude Input
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(10)
+        [
+            SNew(SHorizontalBox)
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(10, 0)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString("Central Longitude for Heightmap (Degrees):"))
+                .Justification(ETextJustify::Left)
+            ]
+
+            + SHorizontalBox::Slot()
+            .FillWidth(1.0f)
+            .Padding(10, 0)
+            [
+                SAssignNew(CentralLongitudeTextBox, SEditableTextBox)
+                .Text(FText::AsNumber(CentralLongitude))
+                .Justification(ETextJustify::Right)
+                .OnTextCommitted(this, &SMainWidget::OnCentralLongitudeChanged)
+                .ToolTipText(FText::FromString("Enter a value between -180 and 180 degrees"))
             ]
         ]
 
@@ -170,6 +201,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(MaximumAltitude))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnMaximumAltitudeChanged)
+                .ToolTipText(FText::FromString("Enter a Maximum Heightmap Height in metres"))
             ]
         ]
 
@@ -197,6 +229,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(MinimumAltitude))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnMinimumAltitudeChanged)
+                .ToolTipText(FText::FromString("Enter a Minimum Heightmap Height in metres"))
             ]
         ]
 
@@ -224,6 +257,7 @@ void SMainWidget::Construct(const FArguments& InArgs)
                 .Text(FText::AsNumber(SeaLevel))
                 .Justification(ETextJustify::Right)
                 .OnTextCommitted(this, &SMainWidget::OnSeaLevelChanged)
+                .ToolTipText(FText::FromString("Enter a Sea Level Height in metres"))
             ]
         ]
     ];
@@ -261,27 +295,54 @@ void SMainWidget::OnDayOfYearChanged(const FText& NewText, ETextCommit::Type Com
 {
     if (NewText.IsNumeric())
     {
-        DayOfYear = FCString::Atof(*NewText.ToString());
+        float NewDayOfYear = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range based on YearLengthDays
+        if (NewDayOfYear < 1.0f || NewDayOfYear > YearLengthDays)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Day of Year: %f. It must be between 1 and %f."), NewDayOfYear, YearLengthDays);
+            DayOfYearTextBox->SetText(FText::AsNumber(DayOfYear)); // Restore previous value
+            return;
+        }
+
+        DayOfYear = NewDayOfYear;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
     }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Day of Year. Must be numeric."));
+    }
 }
+
 
 void SMainWidget::OnNorthernLatitudeChanged(const FText& NewText, ETextCommit::Type CommitType)
 {
     if (NewText.IsNumeric())
     {
-        NorthernLatitude = FCString::Atof(*NewText.ToString());
+        float NewLatitude = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range
+        if (NewLatitude < -90.0f || NewLatitude > 90.0f)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Northern Latitude: %f. It must be between -90 and 90 degrees."), NewLatitude);
+            NorthernLatitudeTextBox->SetText(FText::AsNumber(NorthernLatitude)); // Restore previous value
+            return;
+        }
+
+        NorthernLatitude = NewLatitude;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Northern Latitude. Must be numeric."));
     }
 }
 
@@ -289,13 +350,53 @@ void SMainWidget::OnSouthernLatitudeChanged(const FText& NewText, ETextCommit::T
 {
     if (NewText.IsNumeric())
     {
-        SouthernLatitude = FCString::Atof(*NewText.ToString());
+        float NewLatitude = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range
+        if (NewLatitude < -90.0f || NewLatitude > 90.0f)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Southern Latitude: %f. It must be between -90 and 90 degrees."), NewLatitude);
+            SouthernLatitudeTextBox->SetText(FText::AsNumber(SouthernLatitude)); // Restore previous value
+            return;
+        }
+
+        SouthernLatitude = NewLatitude;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Southern Latitude. Must be numeric."));
+    }
+}
+
+void SMainWidget::OnCentralLongitudeChanged(const FText& NewText, ETextCommit::Type CommitType)
+{
+    if (NewText.IsNumeric())
+    {
+        float NewLongitude = FCString::Atof(*NewText.ToString());
+
+        // Validate range
+        if (NewLongitude < -180.0f || NewLongitude > 180.0f)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Central Longitude: %f. It must be between -180 and 180 degrees."), NewLongitude);
+            CentralLongitudeTextBox->SetText(FText::AsNumber(CentralLongitude)); // Restore previous value
+            return;
+        }
+
+        CentralLongitude = NewLongitude;
+
+        if (OnParametersChanged.IsBound())
+        {
+            OnParametersChanged.Execute();
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Central Longitude. Must be numeric."));
     }
 }
 
@@ -303,43 +404,88 @@ void SMainWidget::OnMaximumAltitudeChanged(const FText& NewText, ETextCommit::Ty
 {
     if (NewText.IsNumeric())
     {
-        MaximumAltitude = FCString::Atof(*NewText.ToString());
+        float NewMaxAltitude = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range: MaximumAltitude should be greater than or equal to MinimumAltitude
+        if (NewMaxAltitude < MinimumAltitude)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Maximum Altitude: %f. It must be greater than or equal to Minimum Altitude: %f."),
+                NewMaxAltitude, MinimumAltitude);
+            MaximumAltitudeTextBox->SetText(FText::AsNumber(MaximumAltitude)); // Restore previous value
+            return;
+        }
+
+        MaximumAltitude = NewMaxAltitude;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
     }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Maximum Altitude. Must be numeric."));
+    }
 }
+
 
 void SMainWidget::OnMinimumAltitudeChanged(const FText& NewText, ETextCommit::Type CommitType)
 {
     if (NewText.IsNumeric())
     {
-        MinimumAltitude = FCString::Atof(*NewText.ToString());
+        float NewMinAltitude = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range: MinimumAltitude should be less than or equal to MaximumAltitude
+        if (NewMinAltitude > MaximumAltitude)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Minimum Altitude: %f. It must be less than or equal to Maximum Altitude: %f."),
+                NewMinAltitude, MaximumAltitude);
+            MinimumAltitudeTextBox->SetText(FText::AsNumber(MinimumAltitude)); // Restore previous value
+            return;
+        }
+
+        MinimumAltitude = NewMinAltitude;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
     }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Minimum Altitude. Must be numeric."));
+    }
 }
+
 
 void SMainWidget::OnSeaLevelChanged(const FText& NewText, ETextCommit::Type CommitType)
 {
     if (NewText.IsNumeric())
     {
-        SeaLevel = FCString::Atof(*NewText.ToString());
+        float NewSeaLevel = FCString::Atof(*NewText.ToString());
 
-        // Trigger callback
+        // Validate range based on MinimumAltitude and MaximumAltitude
+        if (NewSeaLevel < MinimumAltitude || NewSeaLevel > MaximumAltitude)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid Sea Level: %f. It must be between %f (Minimum Altitude) and %f (Maximum Altitude)."), 
+                NewSeaLevel, MinimumAltitude, MaximumAltitude);
+            SeaLevelTextBox->SetText(FText::AsNumber(SeaLevel)); // Restore previous value
+            return;
+        }
+
+        SeaLevel = NewSeaLevel;
+
         if (OnParametersChanged.IsBound())
         {
             OnParametersChanged.Execute();
         }
     }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid input for Sea Level. Must be numeric."));
+    }
 }
+
 
 float SMainWidget::GetDayLengthHours() const
 {
@@ -364,6 +510,11 @@ float SMainWidget::GetNorthernLatitude() const
 float SMainWidget::GetSouthernLatitude() const
 {
     return SouthernLatitude;
+}
+
+float SMainWidget::GetCentralLongitude() const
+{
+    return CentralLongitude;
 }
 
 float SMainWidget::GetMaximumAltitude() const

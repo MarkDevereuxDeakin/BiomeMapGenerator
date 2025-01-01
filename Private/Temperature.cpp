@@ -26,21 +26,25 @@ float Temperature::CalculateSurfaceTemperature(
     float Latitude,
     float Altitude,
     int DayOfYear,
-    float Humidity,
     const FPlanetTime& PlanetTime,
     float Slope,
     float Aspect,
     float WindSpeed)
 {
     // Solar declination angle based on day of year
-    float DeclinationAngle = 23.5f * FMath::Cos(2.0f * PI * (DayOfYear / PlanetTime.GetYearLength()));
+    // Currently fixed for mid-summer. Implement Cos function for seasonal variations later
+    // bool IsSummer = true;
+    float DeclinationAngle = 23.5f; //* FMath::Cos(2.0f * PI * (DayOfYear / PlanetTime.GetYearLength()));
     float SolarInsolation = FMath::Max(0.0f, FMath::Cos(FMath::DegreesToRadians(Latitude - DeclinationAngle)));
 
     // Base temperature at sea level
     float SurfaceTemp = TEMP_BASE_EQUATOR * SolarInsolation;
 
     // Adjust lapse rate based on humidity (lower lapse rate for higher humidity)
-    float LapseRate = (Humidity > 50.0f) ? 4.0f / 1000.0f : 6.5f / 1000.0f; // °C per meter
+    //float LapseRate = (Humidity > 50.0f) ? 4.0f / 1000.0f : 6.5f / 1000.0f; // °C per meter
+
+    // Standard lapse rate (dry air, constant)
+    const float LapseRate = 6.5f / 1000.0f; // °C per meter
 
     // Adjust for altitude
     if (Altitude < 11000.0f) // Troposphere
@@ -58,12 +62,12 @@ float Temperature::CalculateSurfaceTemperature(
     SurfaceTemp += SlopeEffect;
 
     // Apply wind cooling effect
-    float WindCooling = WindSpeed * 0.1f; // Example cooling per m/s
+    float WindCooling = WindSpeed * 0.15f; // Example cooling per m/s
     SurfaceTemp -= WindCooling;
 
-    // Adjust for nighttime cooling (higher humidity reduces cooling)
+    /*Adjust for nighttime cooling (higher humidity reduces cooling)
     float NighttimeCooling = (1.0f - Humidity / 100.0f) * 5.0f; // Example cooling factor
-    SurfaceTemp -= NighttimeCooling;    
+    SurfaceTemp -= NighttimeCooling;*/  
 
     return SurfaceTemp;
 }

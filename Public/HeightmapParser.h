@@ -79,6 +79,7 @@ private:
         float MaxLatitude,
         int32 Width,
         int32 Height,
+        float CentralLongitude,
         float& OutMinLongitude,
         float& OutMaxLongitude
     );

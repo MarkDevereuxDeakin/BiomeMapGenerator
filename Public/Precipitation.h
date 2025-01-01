@@ -20,7 +20,7 @@ public:
     float Latitude,
     float Altitude,
     float DistanceToOcean,
-    float RelativeHumidity,
+    //float RelativeHumidity,
     float Slope,
     FVector2D WindDirection,
     FVector2D OceanToLandVector);

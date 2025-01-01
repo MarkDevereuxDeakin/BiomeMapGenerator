@@ -32,14 +32,15 @@ struct BIOMEMAPPER_API FHeightmapCell
           BiomeType("Ocean"),
           BiomeColor(FColor::Black),          
           CellType(ECellType::Land),
+          ClosestOceanTemperature(0.0f),
+          ClosestOceanCurrentType("Warm"),
           DistanceToOcean(FMath::Max(0.0f, FLT_MAX)),
           FlowDirection("Clockwise"),
           IsWindOnshore(false),
           Latitude(0.0f),
-          Longitude(0.0f),
+          Longitude(0.0f),          
           OceanDepth(FMath::Max(0.0f, 0.0f)),
-          OceanToLandVector(FVector2D::ZeroVector),          
-          RelativeHumidity(FMath::Clamp(0.0f, 0.0f, 1.0f)),
+          OceanToLandVector(FVector2D::ZeroVector),
           Slope(0.0f),
           Temperature(0.0f),
           WindDirection(FVector2D::ZeroVector)
@@ -74,6 +75,14 @@ struct BIOMEMAPPER_API FHeightmapCell
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     ECellType CellType;
 
+     /** Ocean Current affecting land cell. Warm or Cold. */
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float ClosestOceanTemperature;
+
+     /** Ocean Current affecting land cell. Warm or Cold. */
+    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
+    float ClosestOceanCurrentType;
+
     /** Distance to the nearest ocean pixel. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     float DistanceToOcean;
@@ -92,7 +101,7 @@ struct BIOMEMAPPER_API FHeightmapCell
 
     /** Geographic longitude of the cell. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
-    float Longitude;
+    float Longitude;   
 
     /** Depth of the ocean if the cell is underwater. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
@@ -101,10 +110,6 @@ struct BIOMEMAPPER_API FHeightmapCell
     /** Define the ocean-to-land vector */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     FVector2D OceanToLandVector;
-
-    /**Relative Humidity*/
-    UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
-    float RelativeHumidity;
 
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
     float Slope; // Degrees of incline

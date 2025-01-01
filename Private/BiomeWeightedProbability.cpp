@@ -3,25 +3,25 @@
 
 // Define BiomeWeightMap
 TMap<FString, FBiomeWeights> BiomeWeightMap = {
-    { "Tropical Rainforest", { 3.0f, 3.5f, 2.5f, 3.0f, 0.5f, 0.0f, 0.0f } },
-    { "Savanna", { 2.5f, 2.5f, 1.5f, 2.0f, 1.0f, 0.5f, 0.0f } },
-    { "Tropical Monsoon Forests", { 3.0f, 3.2f, 2.0f, 3.0f, 0.5f, 0.0f, 0.0f } },
-    { "Temperate Steppe and Savanna", { 1.8f, 1.5f, 1.0f, 1.5f, 1.5f, 0.8f, 0.2f } },
-    { "Temperate Broadleaf", { 2.0f, 2.0f, 2.0f, 1.5f, 1.0f, 0.5f, 0.1f } },
-    { "Subtropical Evergreen Forest", { 2.0f, 2.0f, 2.0f, 1.5f, 1.0f, 0.5f, 0.1f } },
-    { "Mediterranean", { 1.5f, 2.0f, 1.5f, 1.2f, 1.0f, 0.6f, 0.1f } },
-    { "Xeric Shrubland", { 1.0f, 0.7f, 0.5f, 0.5f, 0.2f, 0.3f, 0.0f } },
-    { "Dry Forest and Woodland Savanna", { 2.0f, 2.5f, 1.5f, 1.8f, 1.2f, 0.5f, 0.1f } },
-    { "Hot Arid Desert", { 3.0f, 0.5f, 0.5f, 0.2f, 0.1f, 0.1f, 0.0f } },
-    { "Tundra", { 3.0f, 0.8f, 1.0f, 1.0f, 2.5f, 1.5f, 0.2f } },
-    { "Montane Forests and Grasslands", { 2.5f, 2.0f, 1.5f, 1.0f, 3.0f, 1.0f, 0.1f } },
-    { "Taiga (Boreal Forest)", { 3.0f, 1.5f, 2.0f, 1.5f, 2.0f, 0.8f, 0.1f } },
-    { "Cold or Polar Desert", { 1.0f, 0.5f, 0.3f, 0.2f, 3.0f, 1.0f, 0.0f } }
+    { "Tropical Rainforest", { 3.0f, 3.5f, 3.0f, 0.5f, 0.0f, 0.0f } },
+    { "Savanna", { 2.5f, 2.5f, 2.0f, 1.0f, 0.5f, 0.0f } },
+    { "Tropical Monsoon Forests", { 3.0f, 3.2f, 3.0f, 0.5f, 0.0f, 0.0f } },
+    { "Temperate Steppe and Savanna", { 1.8f, 1.5f, 1.5f, 1.5f, 0.8f, 0.2f } },
+    { "Temperate Broadleaf", { 2.0f, 2.0f, 1.5f, 1.0f, 0.5f, 0.1f } },
+    { "Subtropical Evergreen Forest", { 2.0f, 2.0f,  1.5f, 1.0f, 0.5f, 0.1f } },
+    { "Mediterranean", { 1.5f, 2.0f, 1.2f, 1.0f, 0.6f, 0.1f } },
+    { "Xeric Shrubland", { 1.0f, 0.7f, 0.5f, 0.2f, 0.3f, 0.0f } },
+    { "Dry Forest and Woodland Savanna", { 2.0f, 2.5f, 1.8f, 1.2f, 0.5f, 0.1f } },
+    { "Hot Arid Desert", { 3.0f, 0.5f, 0.2f, 0.1f, 0.1f, 0.0f } },
+    { "Tundra", { 3.0f, 0.8f, 1.0f, 2.5f, 1.5f, 0.2f } },
+    { "Montane Forests and Grasslands", { 2.5f, 2.0f, 1.0f, 3.0f, 1.0f, 0.1f } },
+    { "Taiga (Boreal Forest)", { 3.0f, 1.5f, 1.5f, 2.0f, 0.8f, 0.1f } },
+    { "Cold or Polar Desert", { 1.0f, 0.5f, 0.2f, 3.0f, 1.0f, 0.0f } }
 };
 
 
 FString CalculateBiomeProbabilities(
-    float AdjustedTemperature, float Precipitation, float Humidity,
+    float AdjustedTemperature, float Precipitation,
     float Latitude, float Altitude, float Slope, float Aspect,
     TArray<FString> Candidates)
 {
@@ -50,8 +50,7 @@ FString CalculateBiomeProbabilities(
         // Calculate the score for the biome
         Scores[Index] = FMath::Max(0.0f, 
             Weights.TempWeight * AdjustedTemperature +
-            Weights.PrecWeight * Precipitation +
-            Weights.HumidityWeight * Humidity +
+            Weights.PrecWeight * Precipitation +           
             Weights.LatitudeWeight * FMath::Abs(Latitude) +
             Weights.AltitudeWeight * Altitude +
             Weights.SlopeWeight * Slope +

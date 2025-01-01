@@ -22,37 +22,15 @@ static const TMap<FString, FColor> BiomeColorMap = {
     {"Cold or Polar Desert", FColor::FromHex("#D3D3D3")}
 };
 
-// Helper function to classify biome
-//static TArray<FString> FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float OceanTempEffect);
 int counter = 100;
 FString UBiomeCalculator::CalculateBiome(FHeightmapCell& Cell)
 {
     // Filter Biomes based on adjusted values
-    TArray<FString> Candidates = FilterBiomeCandidates(Cell.Temperature, Cell.AnnualPrecipitation, Cell.Latitude, Cell.Altitude, Cell.RelativeHumidity);
-
-    // Directly select the first candidate without weighted probabilities
-    FString Biome = Candidates.Num() > 0 ? Candidates[0] : "Unknown Biome";
-
-    // Assign biome type and color to the cell
-    if (!Biome.IsEmpty() && BiomeColorMap.Contains(Biome))
-    {
-        Cell.BiomeType = Biome;
-        Cell.BiomeColor = BiomeColorMap[Biome];
-    }
-    else
-    {
-        Cell.BiomeType = "Unknown";
-        Cell.BiomeColor = FColor::Black;
-    }
-
-    return Biome;
-    /*
-    // Filter Biomes based on adjusted values
-    TArray<FString> Candidates = FilterBiomeCandidates(Cell.Temperature, Cell.AnnualPrecipitation, Cell.Latitude, Cell.Altitude, Cell.RelativeHumidity);
+    TArray<FString> Candidates = FilterBiomeCandidates(Cell.Temperature, Cell.AnnualPrecipitation, Cell.Latitude, Cell.Altitude);
 
     // Determine the best biome
     FString Biome = Candidates.Num() > 0 && Candidates[0] != "Unknown Biome"
-                        ? CalculateBiomeProbabilities(Cell.Temperature, Cell.AnnualPrecipitation, Cell.RelativeHumidity, Cell.Latitude, Cell.Altitude, Cell.Slope, Cell.Aspect, Candidates)
+                        ? CalculateBiomeProbabilities(Cell.Temperature, Cell.AnnualPrecipitation, Cell.Latitude, Cell.Altitude, Cell.Slope, Cell.Aspect, Candidates)
                         : "Unknown Biome";
 
     // Assign biome type and color to the cell
@@ -67,7 +45,8 @@ FString UBiomeCalculator::CalculateBiome(FHeightmapCell& Cell)
         Cell.BiomeColor = FColor::Black;
     }
 
-    return Biome;*/
+    return Biome;
+   
 }
 
 FString UBiomeCalculator::CalculateBiomeFromInput(
@@ -76,7 +55,6 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     float MaxLongitude, // Use calculated Max Longitude    
     TArray<FHeightmapCell>& HeightmapData)
 {
-    //FInputParameters InputParams = GetInputParameters();
     
     // Check for invalid input ranges
     if (InputParams.SouthernLatitude > InputParams.NorthernLatitude || MinLongitude > MaxLongitude || InputParams.MinimumAltitude > InputParams.MaximumAltitude)
@@ -124,7 +102,7 @@ FString UBiomeCalculator::CalculateBiomeFromInput(
     return FinalBiomes;
 }
 
-TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float Latitude, float Altitude, float Humidity)
+TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperature, float Precipitation, float Latitude, float Altitude)
 {
     // Array of candidate biomes
     TArray<FString> Candidates;
@@ -135,18 +113,20 @@ TArray<FString> UBiomeCalculator::FilterBiomeCandidates(float AdjustedTemperatur
     bool IsTemperate = (Latitude > 23.5f && Latitude <= 60.0f) || (Latitude < -23.5f && Latitude >= -60.0f);
     bool IsPolar = (Latitude > 60.0f || Latitude < -60.0f);
 
-    if (AdjustedTemperature >= 24.0f && Precipitation >= 2000.0f && IsTropical) Candidates.Add("Tropical Rainforest");
-    if (AdjustedTemperature >= 24.0f && Precipitation >= 1500.0f && Precipitation <= 2000.0f && IsTropical) Candidates.Add( "Tropical Monsoon Forests");
-    if (AdjustedTemperature >= 20.0f && Precipitation >= 500.0f && Precipitation <= 1500.0f && Humidity > 50.0f && IsTropical) Candidates.Add( "Savanna"); //More tropical. Hot wet summer and cooler dry winters    
-    if (AdjustedTemperature >= 10.0f && AdjustedTemperature <= 20.0f && Precipitation >= 250.0f && Precipitation <= 750.0f && IsTemperate) Candidates.Add( "Temperate Steppe and Savanna");// Semiarid transition between grassland and desert. Short grasses, hot summers and cold winters
-    if (AdjustedTemperature >= 10.0f && AdjustedTemperature <= 20.0f && Precipitation >= 750.0f && Precipitation <= 1500.0f && IsTemperate ) Candidates.Add( "Temperate Broadleaf");    
-    if (AdjustedTemperature >= 10.0f && Precipitation >= 1500.0f && Humidity > 60.0f && IsTemperate ) Candidates.Add( "Subtropical Evergreen Forest");
-    if (AdjustedTemperature > 10.0f && AdjustedTemperature <= 40.0f && Precipitation >= 250.0f && Precipitation <= 900.0f && IsTemperate) Candidates.Add( "Mediterranean");
-    if (AdjustedTemperature >= 10.0f && Precipitation <= 250.0f  && Humidity < 30.0f) Candidates.Add( "Xeric Shrubland");// similar to mediterranean but drier. Xeric actually means dry
-    if (AdjustedTemperature >= 0.0f && Precipitation >= 250.0f && Precipitation <= 500.0f && !IsPolar ) Candidates.Add( "Dry Forest and Woodland Savanna");   
-    if (AdjustedTemperature > 25.0f && Precipitation < 250.0f && Humidity < 20.0f) Candidates.Add( "Hot Arid Desert");
-    if (AdjustedTemperature < 12.0f && Altitude >= 2000.0f ) Candidates.Add( "Tundra");// Polar Tundra    
-    if (AdjustedTemperature >= 0.0f && AdjustedTemperature <= 15.0f && Precipitation > 1000.0f && Altitude > 1500.0f ) Candidates.Add( "Montane Forests and Grasslands");
+    // Criteria based on the lowest ever recorded Real World data in order to create a threshold.
+
+    if (AdjustedTemperature >= 20.0f && AdjustedTemperature >= 30.0f && Precipitation >= 1750.0f && Altitude >= 1000.0f && IsTropical ) Candidates.Add("Tropical Rainforest");
+    if (AdjustedTemperature >= 15.0f && Precipitation >= 750.0f && Precipitation <= 2000.0f && IsTropical ) Candidates.Add( "Tropical Monsoon Forests");
+    if (AdjustedTemperature >= 15.0f && Precipitation >= 500.0f && Precipitation <= 1000.0f && IsTropical ) Candidates.Add( "Savanna"); //More tropical. Hot wet summer and cooler dry winters    
+    if (AdjustedTemperature >= 0.0f && AdjustedTemperature <= 30.0f && Precipitation >= 250.0f && Precipitation <= 750.0f && IsTemperate ) Candidates.Add( "Temperate Steppe and Savanna");// Semiarid transition between grassland and desert. Short grasses, hot summers and cold winters
+    if (AdjustedTemperature >= 10.0f && AdjustedTemperature <= 20.0f && Precipitation >= 750.0f && Precipitation <= 1500.0f && IsTemperate  ) Candidates.Add( "Temperate Broadleaf");    
+    if (AdjustedTemperature >= 10.0f && Precipitation >= 1000.0f && IsTemperate  ) Candidates.Add( "Subtropical Evergreen Forest");
+    if (AdjustedTemperature > 10.0f && AdjustedTemperature <= 45.0f && Precipitation >= 250.0f && Precipitation <= 900.0f && IsTemperate ) Candidates.Add( "Mediterranean");
+    if (AdjustedTemperature >= 0.0f && Precipitation <= 250.0f) Candidates.Add( "Xeric Shrubland");// similar to mediterranean but drier. Xeric actually means dry
+    if (AdjustedTemperature >= 0.0f && Precipitation >= 250.0f && Precipitation <= 500.0f && !IsPolar  ) Candidates.Add( "Dry Forest and Woodland Savanna");   
+    if (AdjustedTemperature > 25.0f && Precipitation < 250.0f) Candidates.Add( "Hot Arid Desert");
+    if (AdjustedTemperature < 12.0f && Altitude >= 1850.0f ) Candidates.Add( "Tundra");// Polar Tundra    
+    if (AdjustedTemperature <= 15.0f && Precipitation > 1000.0f && Altitude > 1500.0f ) Candidates.Add( "Montane Forests and Grasslands");
     if (AdjustedTemperature <= 15.0f && Precipitation >= 500.0f && Precipitation <= 1500.0f && IsPolar ) Candidates.Add( "Taiga (Boreal Forest)");       
     if (AdjustedTemperature < 5.0f && Precipitation < 250.0f && IsPolar) Candidates.Add("Cold or Polar Desert");
 

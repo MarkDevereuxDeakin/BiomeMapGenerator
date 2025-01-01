@@ -4,7 +4,7 @@
 
 void LogBiomeDataToCSV(const TArray<FHeightmapCell>& HeightmapData, const FString& FilePath)
 {
-    FString FileContent = "CellIndex,Latitude,Longitude,Altitude,Temperature,Precipitation,Humidity,Slope,Aspect,Biome\n";
+    FString FileContent = "CellIndex,Latitude,Longitude,Altitude,Temperature,Precipitation,Slope,Aspect,Biome\n";
 
     for (int32 CellIndex = 0; CellIndex < HeightmapData.Num(); ++CellIndex)
     {
@@ -13,14 +13,13 @@ void LogBiomeDataToCSV(const TArray<FHeightmapCell>& HeightmapData, const FStrin
         if(!Cell.Altitude == 0)
         {
             FileContent += FString::Printf(
-            TEXT("%d,%f,%f,%f,%f,%f,%f,%f,%f,%s\n"),
+            TEXT("%d,%f,%f,%f,%f,%f,%f,%f,%s\n"),
             CellIndex,
             Cell.Latitude,
             Cell.Longitude,
             Cell.Altitude,
             Cell.Temperature,
             Cell.AnnualPrecipitation,
-            Cell.RelativeHumidity,
             Cell.Slope,
             Cell.Aspect,
             *Cell.BiomeType);

@@ -5,7 +5,6 @@
 #include "Preprocessing.h"
 #include "DistanceToOcean.h"
 #include "OceanTemperature.h"
-#include "Humidity.h"
 #include "Precipitation.h"
 #include "UnifiedWindCalculator.h"
 #include "Misc/FileHelper.h"
@@ -45,7 +44,14 @@ bool UHeightmapParser::ParseHeightmap(
         return false;
     }
 
-    EstimateLongitudeRange(InputParams.SouthernLatitude, InputParams.NorthernLatitude, OutWidth, OutHeight, OutMinLongitude, OutMaxLongitude);
+    EstimateLongitudeRange(
+        InputParams.SouthernLatitude, 
+        InputParams.NorthernLatitude, 
+        OutWidth, 
+        OutHeight, 
+        InputParams.CentralLongitude,
+        OutMinLongitude, 
+        OutMaxLongitude);
 
     // Calculate resolution (pixels per degree)
     float LatitudeRange = InputParams.NorthernLatitude - InputParams.SouthernLatitude;
@@ -91,6 +97,14 @@ bool UHeightmapParser::ParseHeightmap(
                 Cell.OceanDepth = CalculateOceanDepth(InputParams.SeaLevel, Cell.Altitude);
                 Cell.DistanceToOcean = 0.0f;
                 Cell.CellType = ECellType::Ocean;
+
+                // Assign ocean temperature based on latitude and current type
+                float BaseOceanTemperature = FMath::Clamp(30.0f - FMath::Abs(Cell.Latitude) * 0.5f, -2.0f, 30.0f);
+                FString CurrentType = OceanCurrents::DetermineOceanCurrentType(Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
+                Cell.ClosestOceanTemperature = (CurrentType == "warm") ? BaseOceanTemperature + 7.5f : BaseOceanTemperature - 7.5f;
+
+                // Determine the Ocean Current Flow Direction
+                Cell.FlowDirection = OceanCurrents::ValidateFlowDirection(Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
             }
             else
             {
@@ -329,13 +343,16 @@ bool UHeightmapParser::ParseRawHeightmap(
     float MaxLatitude,
     int32 Width,
     int32 Height,
+    float CentralLongitude,
     float& OutMinLongitude,
     float& OutMaxLongitude)
 {
     float AspectRatio = Width / static_cast<float>(Height);
     float AverageLatitude = (MinLatitude + MaxLatitude) / 2.0f;
-    OutMinLongitude = -AspectRatio * 180.0f / FMath::Cos(FMath::DegreesToRadians(AverageLatitude));
-    OutMaxLongitude = AspectRatio * 180.0f / FMath::Cos(FMath::DegreesToRadians(AverageLatitude));
+    float HalfLongitudeRange = (AspectRatio * 180.0f / FMath::Cos(FMath::DegreesToRadians(AverageLatitude));)
+
+    OutMinLongitude = CentralLongitude - HalfLongitudeRange;
+    OutMaxLongitude = CentralLongitude + HalfLongitudeRange;
 }
 
 bool UHeightmapParser::IsBigEndian(const TArray<uint8>& Data, int32 BitDepth)

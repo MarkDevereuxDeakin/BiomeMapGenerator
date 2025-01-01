@@ -28,6 +28,7 @@ public:
     float GetDayOfYear() const;
     float GetNorthernLatitude() const;
     float GetSouthernLatitude() const;
+    float GetCentralLongitude() const;
     float GetMaximumAltitude() const;
     float GetMinimumAltitude() const;
     float GetSeaLevel() const;
@@ -36,9 +37,10 @@ private:
     
     float DayLengthHours = 24.0f;
     float YearLengthDays = 365.25;
-    float DayOfYear = 0.0f;
-    float SouthernLatitude = 25.0f;
+    float DayOfYear = 0.0f;    
     float NorthernLatitude = 35.0f;
+    float SouthernLatitude = 25.0f;
+    float CentralLongitude = 0.0f;
     float MinimumAltitude = 0.0f;
     float MaximumAltitude = 2000.0f;
     float SeaLevel = 250.0f;
@@ -50,6 +52,7 @@ private:
     TSharedPtr<SEditableTextBox> DayOfYearTextBox;
     TSharedPtr<SEditableTextBox> NorthernLatitudeTextBox;
     TSharedPtr<SEditableTextBox> SouthernLatitudeTextBox;
+    TSharedPtr<SEditableTextBox> CentralLongitudeTextBox;
     TSharedPtr<SEditableTextBox> MaximumAltitudeTextBox;
     TSharedPtr<SEditableTextBox> MinimumAltitudeTextBox;
     TSharedPtr<SEditableTextBox> SeaLevelTextBox;
@@ -68,6 +71,9 @@ private:
 
     /**Called when Southern Latitude is updated */
     void OnSouthernLatitudeChanged(const FText& NewText, ETextCommit::Type CommitType);
+
+    /**Called when Central Longitude is updated */
+    void OnCentralLongitudeChanged(const FText& NewText, ETextCommit::Type CommitType);
 
     /**Called when Maximum Altitude is updated */
     void OnMaximumAltitudeChanged(const FText& NewText, ETextCommit::Type CommitType);

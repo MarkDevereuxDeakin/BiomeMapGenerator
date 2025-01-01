@@ -1,54 +1,47 @@
 #include "OceanCurrents.h"
 
+#include "OceanCurrents.h"
+
 FString OceanCurrents::DetermineOceanCurrentType(float Latitude, float Longitude, FString FlowDirection)
 {
-    // Validate and adjust the flow direction if needed
+    // Validate and adjust the flow direction
     FlowDirection = ValidateFlowDirection(Latitude, Longitude, FlowDirection);
 
-    // Determine the ocean current type
-    if (FlowDirection == "Clockwise" && Latitude < 30.0f)
-    {
-        return "warm"; // Warm current heading toward poles
-    }
-    else if (FlowDirection == "Counterclockwise" && Latitude < 30.0f)
-    {
-        return "warm"; // Warm current heading toward poles
-    }
-    else if (FlowDirection == "Counterclockwise" && Latitude > 30.0f)
-    {
-        return "cold"; // Cold current heading toward equator
-    }
-    else if (FlowDirection == "Clockwise" && Latitude > 30.0f)
-    {
-        return "cold"; // Cold current heading toward equator
-    }
-
-    return "cold";
-}
-
-FString OceanCurrents::ValidateFlowDirection(float Latitude, float Longitude, FString FlowDirection)
-{
-    // Ensure valid flow direction based on location
+    // Determine the ocean current type based on latitude and flow direction
     if (Latitude >= 0.0f) // Northern Hemisphere
     {
-        if (Longitude >= 0.0f) // Eastern Hemisphere
+        if (FlowDirection == "Clockwise")
         {
-            return "Clockwise";
+            return (Latitude < 40.0f) ? "warm" : "cold";
         }
-        else // Western Hemisphere
+        else
         {
-            return "Counterclockwise";
+            return "cold";
         }
     }
     else // Southern Hemisphere
     {
-        if (Longitude >= 0.0f) // Eastern Hemisphere
+        if (FlowDirection == "Counterclockwise")
         {
-            return "Counterclockwise";
+            return (Latitude > -40.0f) ? "warm" : "cold";
         }
-        else // Western Hemisphere
+        else
         {
-            return "Clockwise";
+            return "cold";
         }
     }
 }
+
+FString OceanCurrents::ValidateFlowDirection(float Latitude, float Longitude, FString FlowDirection)
+{
+    // Determine gyre direction based on latitude and longitude
+    if (Latitude >= 0.0f) // Northern Hemisphere
+    {
+        return (Longitude >= 0.0f) ? "Clockwise" : "Counterclockwise";
+    }
+    else // Southern Hemisphere
+    {
+        return (Longitude >= 0.0f) ? "Counterclockwise" : "Clockwise";
+    }
+}
+

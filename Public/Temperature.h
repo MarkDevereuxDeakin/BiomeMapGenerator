@@ -23,7 +23,7 @@ public:
         float Latitude,
         float Altitude,
         int DayOfYear,
-        float Humidity,
+        //float Humidity,
         const FPlanetTime& PlanetTime,
         float Slope,
         float Aspect,

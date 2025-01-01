@@ -10,7 +10,8 @@ struct BIOMEMAPPER_API FInputParameters
   public:
 
     FInputParameters()
-      : NorthernLatitude(0.0f),
+      : CentralLongitude(0.0f),
+        NorthernLatitude(0.0f),
         SouthernLatitude(0.0f),
         MaximumAltitude(0.0f),
         MinimumAltitude(0.0f),
@@ -19,6 +20,9 @@ struct BIOMEMAPPER_API FInputParameters
     {}
 
     GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, Category = "Input Parameters")
+    float CentralLongitude;
 
     UPROPERTY(BlueprintReadWrite, Category = "Input Parameters")
     float NorthernLatitude;

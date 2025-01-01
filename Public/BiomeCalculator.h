@@ -49,6 +49,6 @@ public:
      * @return Array of biome candidates.
      */
     UFUNCTION(BlueprintCallable, category = "Biome Calculator")
-    TArray<FString> FilterBiomeCandidates(float Temperature, float AnnualPrecipitation, float Latitude, float Altitude, float Humidity);
+    TArray<FString> FilterBiomeCandidates(float Temperature, float AnnualPrecipitation, float Latitude, float Altitude/*, float Humidity*/);
 
 };

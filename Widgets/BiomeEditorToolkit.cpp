@@ -106,6 +106,7 @@ void BiomeEditorToolkit::OnUploadButtonClicked()
     // Populate InputParams with current values
     InputParams.NorthernLatitude = MainWidget->GetNorthernLatitude();
     InputParams.SouthernLatitude = MainWidget->GetSouthernLatitude();
+    InputParams.CentralLongitude = MainWidget->GetCentralLongitude();
     InputParams.MaximumAltitude = MainWidget->GetMaximumAltitude();
     InputParams.MinimumAltitude = MainWidget->GetMinimumAltitude();
     InputParams.SeaLevel = MainWidget->GetSeaLevel();
@@ -323,6 +324,7 @@ void BiomeEditorToolkit::OnParametersChanged()
     {
         InputParams.NorthernLatitude = MainWidget->GetNorthernLatitude();
         InputParams.SouthernLatitude = MainWidget->GetSouthernLatitude();
+        InputParams.CentralLongitude = MainWidget->GetCentralLongitude();
         InputParams.MaximumAltitude = MainWidget->GetMaximumAltitude();
         InputParams.MinimumAltitude = MainWidget->GetMinimumAltitude();
         InputParams.SeaLevel = MainWidget->GetSeaLevel();
@@ -330,6 +332,7 @@ void BiomeEditorToolkit::OnParametersChanged()
         UE_LOG(LogTemp, Log, TEXT("Parameters Changed:"));
         UE_LOG(LogTemp, Log, TEXT("Northern Latitude: %.2f"), InputParams.NorthernLatitude);
         UE_LOG(LogTemp, Log, TEXT("Southern Latitude: %.2f"), InputParams.SouthernLatitude);
+        UE_LOG(LogTemp, Log, TEXT("Central Longitude: %.2f"), InputParams.CentralLongitude);
         UE_LOG(LogTemp, Log, TEXT("Maximum Altitude: %.2f"), InputParams.MaximumAltitude);
         UE_LOG(LogTemp, Log, TEXT("Minimum Altitude: %.2f"), InputParams.MinimumAltitude);
         UE_LOG(LogTemp, Log, TEXT("Sea Level: %.2f"), InputParams.SeaLevel);
