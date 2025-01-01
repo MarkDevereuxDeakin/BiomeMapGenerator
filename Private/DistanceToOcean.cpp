@@ -3,7 +3,7 @@
 #include "Async/ParallelFor.h"
 
 bool FindClosestOceanCell(
-    const TArray<FHeightmapCell>& Data,
+    TArray<FHeightmapCell>& Data,
     int32 Width,
     int32 Height,
     TArray<float>& OutDistanceMap,

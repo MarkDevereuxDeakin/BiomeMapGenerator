@@ -81,7 +81,7 @@ struct BIOMEMAPPER_API FHeightmapCell
 
      /** Ocean Current affecting land cell. Warm or Cold. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")
-    float ClosestOceanCurrentType;
+    FString ClosestOceanCurrentType;
 
     /** Distance to the nearest ocean pixel. */
     UPROPERTY(BlueprintReadWrite, Category = "Heightmap")

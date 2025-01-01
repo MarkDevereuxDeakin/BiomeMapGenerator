@@ -4,6 +4,7 @@
 #include "Altitude.h"
 #include "Preprocessing.h"
 #include "DistanceToOcean.h"
+#include "OceanCurrents.h"
 #include "OceanTemperature.h"
 #include "Precipitation.h"
 #include "UnifiedWindCalculator.h"
@@ -104,7 +105,7 @@ bool UHeightmapParser::ParseHeightmap(
                 Cell.ClosestOceanTemperature = (CurrentType == "warm") ? BaseOceanTemperature + 7.5f : BaseOceanTemperature - 7.5f;
 
                 // Determine the Ocean Current Flow Direction
-                Cell.FlowDirection = OceanCurrents::ValidateFlowDirection(Cell.Latitude, Cell.Longitude, Cell.FlowDirection);
+                Cell.FlowDirection = FString(OceanCurrents::ValidateFlowDirection(Cell.Latitude, Cell.Longitude, Cell.FlowDirection));
             }
             else
             {
@@ -349,7 +350,7 @@ bool UHeightmapParser::ParseRawHeightmap(
 {
     float AspectRatio = Width / static_cast<float>(Height);
     float AverageLatitude = (MinLatitude + MaxLatitude) / 2.0f;
-    float HalfLongitudeRange = (AspectRatio * 180.0f / FMath::Cos(FMath::DegreesToRadians(AverageLatitude));)
+    float HalfLongitudeRange = (AspectRatio * 180.0f / FMath::Cos(FMath::DegreesToRadians(AverageLatitude)));
 
     OutMinLongitude = CentralLongitude - HalfLongitudeRange;
     OutMaxLongitude = CentralLongitude + HalfLongitudeRange;
